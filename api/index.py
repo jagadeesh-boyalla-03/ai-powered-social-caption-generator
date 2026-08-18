@@ -70,13 +70,49 @@ class SocialCaptions(BaseModel):
     youtube: Optional[str] = None
     kick: Optional[str] = None
 
+DEFAULT_GEMINI_MODEL = "gemini-3.6-flash"
+GEMINI_MODEL_FALLBACKS = [
+    "gemini-3.6-flash",
+    "gemini-3.5-flash",
+    "gemini-3.5-flash-lite",
+    "gemini-2.5-flash",
+    "gemini-2.0-flash",
+]
+
+def get_model_fallbacks(model):
+    if model in GEMINI_MODEL_FALLBACKS:
+        model_index = GEMINI_MODEL_FALLBACKS.index(model)
+        return GEMINI_MODEL_FALLBACKS[model_index:]
+    return [model] + [fallback for fallback in GEMINI_MODEL_FALLBACKS if fallback != model]
+
+def is_model_lookup_error(error):
+    err_str = str(error).upper()
+    return "NOT_FOUND" in err_str or "404" in err_str or "MODEL" in err_str and "FOUND" in err_str
+
+def clamp_caption(text, max_chars):
+    text = " ".join(text.split())
+    if len(text) <= max_chars:
+        return text
+    return text[: max_chars - 1].rstrip() + "..."
+
+def build_fallback_caption(platform_key, description, tone, context):
+    details = context.strip() or description.strip() or "a professional moment"
+    templates = {
+        "instagram": f"Putting in the work and enjoying the journey. {details} #WorkMode #Growth #ProfessionalLife",
+        "x": f"Good work starts with focus, consistency, and showing up. {details} #WorkMode",
+        "facebook": f"A productive moment worth sharing. {details} Grateful for the chance to keep learning, improving, and doing good work.",
+        "linkedin": f"Good work is built through focus, consistency, and a willingness to keep improving. {details} Proud to keep moving forward with purpose and professionalism. #ProfessionalGrowth #WorkEthic",
+        "pinterest": f"Professional work inspiration: {details}. A clean, confident moment focused on growth, consistency, and purpose. #WorkInspiration #ProfessionalStyle",
+        "youtube": f"Today's focus: {details}\n\nA simple reminder that good work comes from consistency, patience, and showing up with intention.\n\n#ProfessionalGrowth #WorkMode",
+        "kick": f"Locked in and ready to work. {details} #Focus",
+    }
+    rules = PLATFORM_RULES[platform_key]
+    return clamp_caption(templates.get(platform_key, details), rules["max_chars"])
+
 def generate_content_with_retry(client, model, contents, max_retries=5, **kwargs):
     import time
     
-    # Define fallback chain for models
-    model_fallbacks = [model]
-    if model == "gemini-3.5-flash":
-        model_fallbacks.extend(["gemini-2.5-flash", "gemini-2.0-flash", "gemini-3.1-flash-lite"])
+    model_fallbacks = get_model_fallbacks(model)
         
     last_exception = None
     for current_model in model_fallbacks:
@@ -128,10 +164,12 @@ def read_index():
         return HTMLResponse(content=f"Error loading index.html: {str(e)}", status_code=500)
 
 @app.get("/api/health")
+@app.get("/health")
 def health():
     return {"status": "healthy", "service": "Gemini Social Caption API"}
 
 @app.post("/api/generate-captions")
+@app.post("/generate-captions")
 async def generate_captions(
     file: UploadFile = File(...),
     platforms: str = Form(...),
@@ -180,23 +218,33 @@ async def generate_captions(
                 raise Exception("Video processing timed out on Gemini. Please try again.")
 
             # Get video description
-            description_resp = generate_content_with_retry(
-                client=client,
-                model="gemini-3.5-flash",
-                contents=[uploaded_file, "Provide a plain, factual, one-sentence description of this video."]
-            )
-            image_description = description_resp.text.strip()
+            try:
+                description_resp = generate_content_with_retry(
+                    client=client,
+                    model=DEFAULT_GEMINI_MODEL,
+                    contents=[uploaded_file, "Provide a plain, factual, one-sentence description of this video."]
+                )
+                image_description = description_resp.text.strip()
+            except Exception as desc_error:
+                if not is_model_lookup_error(desc_error):
+                    raise
+                image_description = "Uploaded video"
         else:
             # Process as Image
             image_bytes = await file.read()
             image = Image.open(io.BytesIO(image_bytes)).convert("RGB")
 
-            description_resp = generate_content_with_retry(
-                client=client,
-                model="gemini-3.5-flash",
-                contents=[image, "Provide a plain, factual, one-sentence description of this image."]
-            )
-            image_description = description_resp.text.strip()
+            try:
+                description_resp = generate_content_with_retry(
+                    client=client,
+                    model=DEFAULT_GEMINI_MODEL,
+                    contents=[image, "Provide a plain, factual, one-sentence description of this image."]
+                )
+                image_description = description_resp.text.strip()
+            except Exception as desc_error:
+                if not is_model_lookup_error(desc_error):
+                    raise
+                image_description = "Uploaded image"
 
         # 2. Generate captions in a single prompt using structured JSON output
         platform_list = [p.strip().lower() for p in platforms.split(",")]
@@ -226,33 +274,40 @@ Requirements:
 """
         from google.genai import types
         
-        response = generate_content_with_retry(
-            client=client,
-            model="gemini-3.5-flash",
-            contents=prompt,
-            config=types.GenerateContentConfig(
-                response_mime_type="application/json",
-                response_schema=SocialCaptions,
-            )
-        )
-
-        # Parse structured output safely
         caption_text_map = {}
+        fallback_used = False
         try:
-            if response.parsed:
-                if hasattr(response.parsed, "model_dump"):
-                    caption_text_map = response.parsed.model_dump()
-                else:
-                    caption_text_map = response.parsed.__dict__
-            else:
-                import json
-                caption_text_map = json.loads(response.text)
-        except Exception:
+            response = generate_content_with_retry(
+                client=client,
+                model=DEFAULT_GEMINI_MODEL,
+                contents=prompt,
+                config=types.GenerateContentConfig(
+                    response_mime_type="application/json",
+                    response_schema=SocialCaptions,
+                )
+            )
+
+            # Parse structured output safely
             try:
-                import json
-                caption_text_map = json.loads(response.text)
+                if response.parsed:
+                    if hasattr(response.parsed, "model_dump"):
+                        caption_text_map = response.parsed.model_dump()
+                    else:
+                        caption_text_map = response.parsed.__dict__
+                else:
+                    import json
+                    caption_text_map = json.loads(response.text)
             except Exception:
-                caption_text_map = {}
+                try:
+                    import json
+                    caption_text_map = json.loads(response.text)
+                except Exception:
+                    fallback_used = True
+                    caption_text_map = {}
+        except Exception as caption_error:
+            if not is_model_lookup_error(caption_error):
+                raise
+            fallback_used = True
 
         for platform_key in platform_list:
             if platform_key not in PLATFORM_RULES:
@@ -265,6 +320,10 @@ Requirements:
                 caption_text = ""
             elif not isinstance(caption_text, str):
                 caption_text = str(caption_text)
+
+            if not caption_text.strip():
+                fallback_used = True
+                caption_text = build_fallback_caption(platform_key, image_description, tone, context)
                 
             results[platform_key] = {
                 "label": rules["label"],
@@ -274,7 +333,8 @@ Requirements:
 
         return {
             "description": image_description,
-            "captions": results
+            "captions": results,
+            "fallback_used": fallback_used
         }
 
     except Exception as e:
@@ -310,4 +370,3 @@ Requirements:
                 client.files.delete(name=uploaded_file.name)
             except Exception:
                 pass
-

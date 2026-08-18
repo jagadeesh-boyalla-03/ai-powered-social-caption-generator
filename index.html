@@ -405,6 +405,13 @@
       errorCard.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
     }
 
+    function normalizeErrorMessage(msg, status) {
+      if (status === 404 || String(msg).trim().toLowerCase() === 'not found') {
+        return 'Caption service endpoint was not found. Please redeploy the app so the updated API route is active.';
+      }
+      return msg;
+    }
+
     function validateInputs() {
       const activePlatforms = document.querySelectorAll('.platform-btn.active');
       const isValid = selectedImage !== null && activePlatforms.length > 0;
@@ -455,7 +462,7 @@
             const textResponse = await response.text();
             errMsg = textResponse || errMsg;
           }
-          throw new Error(errMsg);
+          throw new Error(normalizeErrorMessage(errMsg, response.status));
         }
 
         const data = await response.json();
