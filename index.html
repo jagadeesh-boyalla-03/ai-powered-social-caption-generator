@@ -429,12 +429,6 @@
       errorCard.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
     }
 
-    function normalizeErrorMessage(msg, status) {
-      if (status === 404 || String(msg).trim().toLowerCase() === 'not found') {
-        return 'Caption service or model was not found. Please check that GEMINI_API_KEY is set in your .env or entered in the API key field.';
-      }
-      return msg;
-    }
 
     function validateInputs() {
       const activePlatforms = document.querySelectorAll('.platform-btn.active');
