@@ -76,16 +76,16 @@
             Settings
           </h2>
 
-          <!-- Settings / API Key Section -->
-          <div id="developerSettingsContainer" class="mb-6">
-            <details class="group border-b border-slate-800/40 pb-4" open>
+          <!-- Settings / API Key Section (Hidden for security) -->
+          <div id="developerSettingsContainer" class="hidden mb-6">
+            <details class="group border-b border-slate-800/40 pb-4">
               <summary class="list-none flex items-center justify-between text-xs font-semibold uppercase tracking-wider text-slate-400 cursor-pointer select-none hover:text-slate-300 transition-colors">
                 <span class="flex items-center gap-1.5">
                   <svg class="w-3.5 h-3.5 text-indigo-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 7a2 2 0 012 2m4 0a6 6 0 01-7.743 5.743L11 17H9v2H7v2H4a1 1 0 01-1-1v-2.586a1 1 0 01.293-.707l5.964-5.964A6 6 0 1121 9z" />
                   </svg>
                   <span>Gemini API Key</span>
-                  <span class="text-[10px] text-slate-500 font-normal normal-case">(Optional if configured in Vercel)</span>
+                  <span class="text-[10px] text-slate-500 font-normal normal-case">(Developer Mode)</span>
                 </span>
                 <svg class="h-3.5 w-3.5 transform group-open:rotate-180 transition-transform duration-200 text-slate-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                   <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
@@ -104,7 +104,7 @@
                   </button>
                 </div>
                 <p class="text-[10px] text-slate-500 mt-1.5 leading-relaxed">
-                  Saved safely in your browser. Leave blank if <code class="text-indigo-400">GEMINI_API_KEY</code> is set in Vercel.
+                  Saved safely in your browser. Leave blank if <code class="text-indigo-400">GEMINI_API_KEY</code> is set in server environment.
                 </p>
               </div>
             </details>
@@ -328,16 +328,28 @@
       });
     }
 
-    function enableDevMode() {
-      developerSettingsContainer.classList.remove('hidden');
-      if (modelBadge) modelBadge.classList.remove('hidden');
-      localStorage.setItem('gemini_dev_mode', 'true');
+    // Secret click toggle: Click "Settings" title 5 times to reveal developer API key input
+    let settingsClickCount = 0;
+    let settingsClickTimer = null;
+    if (settingsTitle && developerSettingsContainer) {
+      settingsTitle.addEventListener('click', () => {
+        settingsClickCount++;
+        clearTimeout(settingsClickTimer);
+        settingsClickTimer = setTimeout(() => { settingsClickCount = 0; }, 1500);
+
+        if (settingsClickCount >= 5) {
+          developerSettingsContainer.classList.toggle('hidden');
+          if (modelBadge) modelBadge.classList.toggle('hidden');
+          settingsClickCount = 0;
+        }
+      });
     }
 
-    // Check URL or localStorage on startup
+    // Only reveal if explicitly requested in URL query (?dev=1 or ?developer=1)
     const urlParams = new URLSearchParams(window.location.search);
-    if (urlParams.has('dev') || urlParams.has('developer') || localStorage.getItem('gemini_dev_mode') === 'true') {
-      enableDevMode();
+    if (urlParams.has('dev') || urlParams.has('developer')) {
+      if (developerSettingsContainer) developerSettingsContainer.classList.remove('hidden');
+      if (modelBadge) modelBadge.classList.remove('hidden');
     }
 
     // Platform toggle listeners
