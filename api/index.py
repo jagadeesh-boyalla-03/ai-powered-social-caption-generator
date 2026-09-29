@@ -12,6 +12,7 @@ from fastapi import FastAPI, UploadFile, File, Form, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import HTMLResponse, JSONResponse
 from PIL import Image
+# pyrefly: ignore [missing-import]
 from dotenv import load_dotenv
 from google import genai
 from google.genai import types
@@ -149,6 +150,9 @@ def health():
 
 @app.post("/api/generate-captions")
 @app.post("/generate-captions")
+@app.post("/api/index")
+@app.post("/api/index.py")
+@app.post("/")
 async def generate_captions(
     file: UploadFile = File(...),
     platforms: str = Form(...),

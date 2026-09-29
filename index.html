@@ -471,30 +471,46 @@
       resultsSection.classList.add('hidden');
       errorCard.classList.add('hidden');
 
-      try {
-        const response = await fetch('/api/generate-captions', {
-          method: 'POST',
-          body: formData
-        });
+      const endpoints = ['/api/generate-captions', '/generate-captions', '/api/index'];
+      let lastErr = null;
+      let successData = null;
 
-        if (!response.ok) {
-          let errMsg = 'Failed to generate captions.';
-          try {
-            const errorData = await response.json();
-            errMsg = errorData.detail || errorData.message || errMsg;
-          } catch (jsonErr) {
-            const textResponse = await response.text();
-            errMsg = textResponse || errMsg;
+      for (const endpoint of endpoints) {
+        try {
+          const response = await fetch(endpoint, {
+            method: 'POST',
+            body: formData
+          });
+
+          if (response.ok) {
+            successData = await response.json();
+            break;
           }
-          throw new Error(normalizeErrorMessage(errMsg, response.status));
-        }
 
-        const data = await response.json();
-        renderResults(data);
-      } catch (err) {
-        showError(err.message);
-      } finally {
-        loadingOverlay.classList.add('hidden');
+          let errMsg = `Server returned status ${response.status}`;
+          try {
+            const errJson = await response.json();
+            errMsg = errJson.detail || errJson.message || errMsg;
+          } catch (_) {
+            const rawText = await response.text();
+            if (rawText && rawText.length < 200) errMsg = rawText;
+          }
+
+          lastErr = new Error(errMsg);
+          if (response.status !== 404) {
+            break;
+          }
+        } catch (fetchErr) {
+          lastErr = fetchErr;
+        }
+      }
+
+      loadingOverlay.classList.add('hidden');
+
+      if (successData) {
+        renderResults(successData);
+      } else {
+        showError(lastErr ? lastErr.message : 'Failed to connect to caption service.');
       }
     });
 
