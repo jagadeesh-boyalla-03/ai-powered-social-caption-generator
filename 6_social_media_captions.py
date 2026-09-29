@@ -1,10 +1,10 @@
 """
 Generate ready-to-post social media captions from an image, for
-multiple platforms at once (Instagram, X/Twitter, Facebook, LinkedIn, Pinterest) using Gemini.
+multiple platforms at once (Instagram, X/Twitter, Facebook, LinkedIn, Pinterest) using Google Gemini.
 
-Before running, set your Gemini API key as an environment variable:
-    Windows (PowerShell):  $env:GEMINI_API_KEY="your-key-here"
-    Mac/Linux:             export GEMINI_API_KEY="your-key-here"
+Before running, ensure your Gemini API key is set in .env or as an environment variable:
+    Windows (PowerShell):  $env:GEMINI_API_KEY="your-key"
+    Mac/Linux:             export GEMINI_API_KEY="your-key"
 
 Usage:
     python 6_social_media_captions.py path/to/image.jpg
@@ -12,91 +12,82 @@ Usage:
 """
 
 import sys
+import os
 import argparse
 from PIL import Image
 from google import genai
+from dotenv import load_dotenv
+
+if hasattr(sys.stdout, "reconfigure"):
+    sys.stdout.reconfigure(encoding="utf-8", errors="replace")
+
+load_dotenv()
 
 PLATFORM_RULES = {
     "instagram": {
         "label": "Instagram",
         "max_chars": 2200,
-        "style": "warm, visual, engaging; 3-5 relevant hashtags at the end; 1-2 emojis max; can include a short call-to-action like 'double tap' or 'tag a friend'",
+        "style": "warm, visual, engaging; 5-8 trending and niche hashtags; 1-2 emojis; engaging call-to-action",
     },
     "x": {
         "label": "X (Twitter)",
         "max_chars": 280,
-        "style": "punchy, witty, very concise; 1-2 hashtags max; must fit in 280 characters INCLUDING hashtags",
+        "style": "punchy, witty, high-impact concise text; 2-3 targeted hashtags; strictly under 280 characters",
     },
     "facebook": {
         "label": "Facebook",
-        "max_chars": 500,
-        "style": "conversational, slightly longer-form, storytelling tone; minimal hashtags (0-2); can ask a question to invite comments",
+        "max_chars": 600,
+        "style": "conversational, community-focused, engaging question; 4-5 relevant hashtags",
     },
     "linkedin": {
         "label": "LinkedIn",
-        "max_chars": 700,
-        "style": "professional but human, insight or takeaway oriented, no cutesy emojis; 2-3 professional hashtags relevant to industry/career",
+        "max_chars": 750,
+        "style": "professional, insight-driven, practical career/business takeaways; 5+ industry hashtags",
     },
     "pinterest": {
         "label": "Pinterest",
         "max_chars": 500,
-        "style": "descriptive and keyword-rich for searchability, inspirational tone; include practical/how-to angle if relevant; 3-5 hashtags",
+        "style": "keyword-rich, aesthetic and inspirational; 5-7 search hashtags",
     },
 }
 
-def get_image_description(client, image_path):
+def get_image_description(client: genai.Client, image_path: str) -> str:
     raw_image = Image.open(image_path).convert("RGB")
     response = client.models.generate_content(
-        model="gemini-3.5-flash",
+        model="gemini-3.5-flash-lite",
         contents=[raw_image, "Provide a plain, factual, one-sentence description of this image."]
     )
     return response.text.strip()
 
-def build_prompt(image_description, platform_key, tone, extra_context):
+def build_prompt(image_description: str, platform_key: str, tone: str, extra_context: str) -> str:
     rules = PLATFORM_RULES[platform_key]
-    context_line = f"\nAdditional context from the user about this post: {extra_context}\n" if extra_context else ""
+    context_line = f"\nAdditional context from user: {extra_context}\n" if extra_context else ""
 
-    prompt = f"""You are a social media copywriter. Here is a plain, factual description
-of an image (from an image captioning model): "{image_description}"
+    prompt = f"""You are an elite social media copywriter.
+Media description: "{image_description}"
 {context_line}
-Write ONE ready-to-post caption for {rules['label']}.
+Platform: {rules['label']}
+Platform style requirements: {rules['style']}
+Character Limit: strictly under {rules['max_chars']} characters
 
 Requirements:
 - Tone: {tone}
-- Platform style: {rules['style']}
-- Hard limit: must be under {rules['max_chars']} characters, including hashtags
-- Output ONLY the caption text (and hashtags if applicable). No explanation, no quotation marks, no preamble.
+- Hashtags: Include 5+ relevant, high-traffic hashtags on the final line(s).
+- Structure: Punchy hook, concise body/takeaway, quick call to action, followed by hashtags.
+- Output ONLY the ready-to-post caption text.
 """
     return prompt
 
-import time
-from google.genai.errors import ServerError, ClientError
-
-def generate_content_with_retry(client, model, contents, max_retries=4, delay=2):
-    for attempt in range(max_retries):
-        try:
-            response = client.models.generate_content(
-                model=model,
-                contents=contents
-            )
-            return response.text.strip()
-        except (ServerError, ClientError) as e:
-            is_retryable = isinstance(e, ServerError) or (isinstance(e, ClientError) and getattr(e, "code", None) == 429)
-            if is_retryable and attempt < max_retries - 1:
-                time.sleep(delay * (2 ** attempt))
-            else:
-                raise e
-
-def generate_caption_for_platform(client, image_description, platform_key, tone, extra_context):
+def generate_caption_for_platform(client: genai.Client, image_description: str, platform_key: str, tone: str, extra_context: str) -> str:
     prompt = build_prompt(image_description, platform_key, tone, extra_context)
-    return generate_content_with_retry(
-        client=client,
-        model="gemini-3.5-flash",
+    response = client.models.generate_content(
+        model="gemini-3.5-flash-lite",
         contents=prompt
     )
+    return response.text.strip()
 
 def main():
-    parser = argparse.ArgumentParser(description="Generate social media captions from an image using Gemini.")
+    parser = argparse.ArgumentParser(description="Generate social media captions from an image using Google Gemini.")
     parser.add_argument("image_path", help="Path to the image file")
     parser.add_argument("--platforms", default="instagram,x,facebook,linkedin,pinterest",
                          help="Comma-separated list of platforms (default: all)")
@@ -112,13 +103,9 @@ def main():
             print(f"Unknown platform '{p}'. Valid options: {', '.join(PLATFORM_RULES.keys())}")
             sys.exit(1)
 
-    import os
     api_key = os.environ.get("GEMINI_API_KEY")
     if not api_key:
-        print("Error: GEMINI_API_KEY environment variable not found.")
-        print("Please set it before running this script. E.g.:")
-        print("  Windows: $env:GEMINI_API_KEY=\"your_key_here\"")
-        print("  Mac/Linux: export GEMINI_API_KEY=\"your_key_here\"")
+        print("Error: GEMINI_API_KEY environment variable not found in .env.")
         sys.exit(1)
 
     client = genai.Client(api_key=api_key)

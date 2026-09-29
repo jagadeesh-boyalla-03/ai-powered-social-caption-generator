@@ -1,18 +1,25 @@
 import os
 import io
+import re
+import json
 import tempfile
 import shutil
 import random
+import time
 from typing import Optional
 from pydantic import BaseModel
 from fastapi import FastAPI, UploadFile, File, Form, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import JSONResponse
+from fastapi.responses import HTMLResponse, JSONResponse
 from PIL import Image
+from dotenv import load_dotenv
 from google import genai
-from google.genai.errors import ServerError, ClientError
+from google.genai import types
 
-app = FastAPI(title="Gemini Social Caption API")
+# Load environment variables from .env file
+load_dotenv()
+
+app = FastAPI(title="AI Social Media Caption API (Powered by Google Gemini)")
 
 # Enable CORS for frontend requests
 app.add_middleware(
@@ -27,37 +34,37 @@ PLATFORM_RULES = {
     "instagram": {
         "label": "Instagram",
         "max_chars": 2200,
-        "style": "warm, visual, engaging; 3-5 relevant hashtags at the end; 1-2 emojis max; can include a short call-to-action like 'double tap' or 'tag a friend'",
+        "style": "warm, visual, engaging; 5-8 trending and niche hashtags; 1-2 emojis; engaging call-to-action",
     },
     "x": {
         "label": "X (Twitter)",
         "max_chars": 280,
-        "style": "punchy, witty, very concise; 1-2 hashtags max; must fit in 280 characters INCLUDING hashtags",
+        "style": "punchy, witty, high-impact concise text; 2-3 targeted hashtags; strictly under 280 characters",
     },
     "facebook": {
         "label": "Facebook",
-        "max_chars": 500,
-        "style": "conversational, storytelling tone; minimal hashtags (0-2); can ask a question to invite comments",
+        "max_chars": 600,
+        "style": "conversational, community-focused, engaging question; 4-5 relevant hashtags",
     },
     "linkedin": {
         "label": "LinkedIn",
-        "max_chars": 700,
-        "style": "professional but human, insight or takeaway oriented, no cutesy emojis; 2-3 professional hashtags relevant to industry/career",
+        "max_chars": 750,
+        "style": "professional, insight-driven, practical career/business takeaways; 5+ industry hashtags",
     },
     "pinterest": {
         "label": "Pinterest",
         "max_chars": 500,
-        "style": "descriptive and keyword-rich for searchability, inspirational tone; include practical/how-to angle if relevant; 3-5 hashtags",
+        "style": "keyword-rich, aesthetic and inspirational; 5-7 search hashtags",
     },
     "youtube": {
         "label": "YouTube",
         "max_chars": 5000,
-        "style": "video-description style, engaging layout with paragraphs and bullet points, includes standard call-to-action like 'subscribe and turn on notifications', 3-5 tags at the bottom",
+        "style": "video description format with key takeaways, subscribe CTA, and 5-10 tags/hashtags",
     },
     "kick": {
         "label": "Kick",
         "max_chars": 150,
-        "style": "gamer stream title, high energy, attention-grabbing hook to join stream, 2-3 emojis, gamer slang friendly, 1-2 hashtags",
+        "style": "high energy stream title, hype hook, 2-3 hashtags",
     },
 }
 
@@ -70,87 +77,59 @@ class SocialCaptions(BaseModel):
     youtube: Optional[str] = None
     kick: Optional[str] = None
 
-DEFAULT_GEMINI_MODEL = "gemini-3.6-flash"
+DEFAULT_GEMINI_MODEL = "gemini-3.5-flash-lite"
 GEMINI_MODEL_FALLBACKS = [
-    "gemini-3.6-flash",
-    "gemini-3.5-flash",
     "gemini-3.5-flash-lite",
-    "gemini-2.5-flash",
-    "gemini-2.0-flash",
+    "gemini-3.5-flash",
+    "gemini-3.6-flash",
 ]
 
-def get_model_fallbacks(model):
-    if model in GEMINI_MODEL_FALLBACKS:
-        model_index = GEMINI_MODEL_FALLBACKS.index(model)
-        return GEMINI_MODEL_FALLBACKS[model_index:]
-    return [model] + [fallback for fallback in GEMINI_MODEL_FALLBACKS if fallback != model]
+def looks_like_gemini_api_key(key: str) -> bool:
+    if not key:
+        return False
+    return len(key.strip()) >= 20
 
-def is_model_lookup_error(error):
-    err_str = str(error).upper()
-    return "NOT_FOUND" in err_str or "404" in err_str or "MODEL" in err_str and "FOUND" in err_str
-
-def clamp_caption(text, max_chars):
-    text = " ".join(text.split())
+def clamp_caption(text: str, max_chars: int) -> str:
+    text = re.sub(r'\n{3,}', '\n\n', text.strip())
     if len(text) <= max_chars:
         return text
     return text[: max_chars - 1].rstrip() + "..."
 
-def build_fallback_caption(platform_key, description, tone, context):
-    details = context.strip() or description.strip() or "a professional moment"
+def build_fallback_caption(platform_key: str, description: str, tone: str, context: str) -> str:
+    details = context.strip() or description.strip() or "a great moment"
     templates = {
-        "instagram": f"Putting in the work and enjoying the journey. {details} #WorkMode #Growth #ProfessionalLife",
-        "x": f"Good work starts with focus, consistency, and showing up. {details} #WorkMode",
-        "facebook": f"A productive moment worth sharing. {details} Grateful for the chance to keep learning, improving, and doing good work.",
-        "linkedin": f"Good work is built through focus, consistency, and a willingness to keep improving. {details} Proud to keep moving forward with purpose and professionalism. #ProfessionalGrowth #WorkEthic",
-        "pinterest": f"Professional work inspiration: {details}. A clean, confident moment focused on growth, consistency, and purpose. #WorkInspiration #ProfessionalStyle",
-        "youtube": f"Today's focus: {details}\n\nA simple reminder that good work comes from consistency, patience, and showing up with intention.\n\n#ProfessionalGrowth #WorkMode",
-        "kick": f"Locked in and ready to work. {details} #Focus",
+        "instagram": f"Putting in the work and enjoying the journey. {details}\n\nDouble tap if you resonate with this! ✨\n\n#Growth #Creativity #DailyInspiration #Moments #VisualStory",
+        "x": f"Good things start with focus and showing up. {details} ⚡ #Focus #Momentum #Growth",
+        "facebook": f"A moment worth sharing: {details}.\n\nWhat has inspired your work this week? Let us know below!\n\n#Community #Inspiration #WorkInProgress #DailyLife #Storytelling",
+        "linkedin": f"Success is built through focus, consistency, and continuous improvement.\n\nKey Takeaway: {details}\n\nHow does your team cultivate this mindset?\n\n#ProfessionalGrowth #WorkEthic #Leadership #PersonalBranding #Productivity",
+        "pinterest": f"Inspiration: {details}.\nA clean, confident visual focused on growth, lifestyle, and purpose.\n\n#Inspiration #Style #Design #CreativeIdeas #Aesthetic",
+        "youtube": f"Today's focus: {details}\n\nA simple reminder that consistency and passion lead to results.\n\n🔔 Subscribe for more updates!\n\n#Growth #Creativity #Inspiration #VideoContent #LearnAndGrow",
+        "kick": f"Locked in and live! {details} 🎮 #Stream #Gaming #LiveNow",
     }
-    rules = PLATFORM_RULES[platform_key]
+    rules = PLATFORM_RULES.get(platform_key, {"max_chars": 500})
     return clamp_caption(templates.get(platform_key, details), rules["max_chars"])
 
-def generate_content_with_retry(client, model, contents, max_retries=5, **kwargs):
-    import time
-    
-    model_fallbacks = get_model_fallbacks(model)
-        
+def generate_gemini_content_with_retry(client: genai.Client, contents, max_retries: int = 3, config=None):
     last_exception = None
-    for current_model in model_fallbacks:
+    for model_name in GEMINI_MODEL_FALLBACKS:
         for attempt in range(max_retries):
             try:
-                response = client.models.generate_content(
-                    model=current_model,
-                    contents=contents,
-                    **kwargs
-                )
-                return response
+                kwargs = {"model": model_name, "contents": contents}
+                if config:
+                    kwargs["config"] = config
+                return client.models.generate_content(**kwargs)
             except Exception as e:
                 last_exception = e
                 err_str = str(e).upper()
-                is_busy = "503" in err_str or "UNAVAILABLE" in err_str or "429" in err_str or "RESOURCE_EXHAUSTED" in err_str or "LIMIT" in err_str or "BUSY" in err_str
-                
-                if is_busy:
-                    if attempt < max_retries - 1:
-                        wait_time = (2 ** attempt) + random.uniform(0, 1)
-                        print(f"Model {current_model} busy, retrying in {wait_time:.1f}s... (attempt {attempt + 1}/{max_retries})")
-                        time.sleep(wait_time)
-                    else:
-                        print(f"Model {current_model} exhausted retries. Trying fallback model if available...")
-                        break  # Try the next fallback model in the list
+                is_transient = "503" in err_str or "UNAVAILABLE" in err_str or "429" in err_str or "RESOURCE_EXHAUSTED" in err_str or "BUSY" in err_str
+                if is_transient and attempt < max_retries - 1:
+                    wait_time = (1.5 ** attempt) + random.uniform(0.5, 1.0)
+                    time.sleep(wait_time)
                 else:
-                    # If the model is not found or not permitted, and we have other fallbacks left, try the next fallback model.
-                    is_model_unavailable = "NOT_FOUND" in err_str or "404" in err_str or "PERMISSION" in err_str or "403" in err_str or "INVALID_ARGUMENT" in err_str
-                    if is_model_unavailable and current_model != model_fallbacks[-1]:
-                        print(f"Model {current_model} not accessible, trying fallback model...")
-                        break
-                    raise e  # Non-retryable error (e.g. invalid API key), raise immediately
-                    
+                    break
     if last_exception:
         raise last_exception
-    raise Exception("Gemini API still unavailable after trying fallbacks.")
-
-
-from fastapi.responses import HTMLResponse
+    raise Exception("Gemini service unavailable after attempting fallback models.")
 
 @app.get("/", response_class=HTMLResponse)
 def read_index():
@@ -166,7 +145,7 @@ def read_index():
 @app.get("/api/health")
 @app.get("/health")
 def health():
-    return {"status": "healthy", "service": "Gemini Social Caption API"}
+    return {"status": "healthy", "service": "Social Caption Generator API (Google Gemini)"}
 
 @app.post("/api/generate-captions")
 @app.post("/generate-captions")
@@ -182,29 +161,30 @@ async def generate_captions(
     client = None
     try:
         # Determine API Key: use user-supplied or fallback to environment variable
-        key = api_key.strip() or os.environ.get("GEMINI_API_KEY")
+        key = api_key.strip() or os.environ.get("GEMINI_API_KEY") or os.environ.get("GROQ_API_KEY")
         if not key:
             raise HTTPException(
                 status_code=400,
-                detail="Gemini API Key is required. Please configure the server-side GEMINI_API_KEY."
+                detail="Gemini API key is missing. Add GEMINI_API_KEY to your .env file or server environment."
             )
+        if not looks_like_gemini_api_key(key):
+            raise HTTPException(
+                status_code=400,
+                detail="Invalid API key format. Please check your Gemini API key."
+            )
+
         client = genai.Client(api_key=key)
 
         is_video = file.content_type and file.content_type.startswith("video/")
         media_type = "video" if is_video else "image"
 
         if is_video:
-            # Create a temporary file to save the video upload
             file_extension = os.path.splitext(file.filename)[1] if file.filename else ".mp4"
             with tempfile.NamedTemporaryFile(delete=False, suffix=file_extension) as temp_file:
                 shutil.copyfileobj(file.file, temp_file)
                 temp_file_path = temp_file.name
 
-            # Upload video to Gemini using File API
             uploaded_file = client.files.upload(file=temp_file_path)
-
-            # Poll until video is ACTIVE
-            import time
             max_polls = 45
             poll_count = 0
             while uploaded_file.state.name == "PROCESSING" and poll_count < max_polls:
@@ -213,73 +193,57 @@ async def generate_captions(
                 poll_count += 1
 
             if uploaded_file.state.name == "FAILED":
-                raise Exception(f"Video processing failed on Gemini: {uploaded_file.error.message if hasattr(uploaded_file, 'error') else 'Unknown error'}")
-            if uploaded_file.state.name != "ACTIVE":
-                raise Exception("Video processing timed out on Gemini. Please try again.")
-
-            # Get video description
-            try:
-                description_resp = generate_content_with_retry(
-                    client=client,
-                    model=DEFAULT_GEMINI_MODEL,
-                    contents=[uploaded_file, "Provide a plain, factual, one-sentence description of this video."]
-                )
-                image_description = description_resp.text.strip()
-            except Exception as desc_error:
-                if not is_model_lookup_error(desc_error):
-                    raise
-                image_description = "Uploaded video"
+                raise Exception("Video processing failed on Gemini.")
+            
+            desc_resp = generate_gemini_content_with_retry(
+                client=client,
+                contents=[uploaded_file, "Provide a plain, factual, one-sentence description of this video."]
+            )
+            image_description = desc_resp.text.strip()
         else:
-            # Process as Image
             image_bytes = await file.read()
-            image = Image.open(io.BytesIO(image_bytes)).convert("RGB")
+            raw_img = Image.open(io.BytesIO(image_bytes)).convert("RGB")
+            desc_resp = generate_gemini_content_with_retry(
+                client=client,
+                contents=[raw_img, "Provide a plain, factual, one-sentence description of this image."]
+            )
+            image_description = desc_resp.text.strip()
 
-            try:
-                description_resp = generate_content_with_retry(
-                    client=client,
-                    model=DEFAULT_GEMINI_MODEL,
-                    contents=[image, "Provide a plain, factual, one-sentence description of this image."]
-                )
-                image_description = description_resp.text.strip()
-            except Exception as desc_error:
-                if not is_model_lookup_error(desc_error):
-                    raise
-                image_description = "Uploaded image"
-
-        # 2. Generate captions in a single prompt using structured JSON output
-        platform_list = [p.strip().lower() for p in platforms.split(",")]
-        results = {}
-
+        # Generate Platform Captions
+        platform_list = [p.strip().lower() for p in platforms.split(",") if p.strip()]
         rules_text_list = []
         for platform_key in platform_list:
             if platform_key in PLATFORM_RULES:
                 rules = PLATFORM_RULES[platform_key]
-                rules_text_list.append(f"- {rules['label']}: Style: {rules['style']}, Max characters: {rules['max_chars']}")
+                rules_text_list.append(f"- {platform_key} ({rules['label']}): Style: {rules['style']}, Max characters: {rules['max_chars']}")
         rules_text = "\n".join(rules_text_list)
-        
-        context_line = f"\nAdditional context from the user: {context}\n" if context else ""
 
-        prompt = f"""You are a social media copywriter. Here is a plain, factual description
-of a {media_type}: "{image_description}"
+        context_line = f"\nAdditional context from user: {context}\n" if context else ""
+
+        prompt = f"""You are an elite social media copywriter and growth strategist.
+Media Description: "{image_description}"
 {context_line}
-
-Write ready-to-post captions for the following platforms, matching their specific styles and character limits:
+Platforms & Style Requirements:
 {rules_text}
 
-Requirements:
-- Tone: The tone MUST be "{tone}" for all generated captions. Ensure this tone is strongly reflected in the writing style.
-- Completeness: You MUST generate a custom caption for every single platform requested above. Do not leave any requested platform blank or null.
-- Hard limit: Each caption must be strictly under the character limit specified for its platform (including hashtags).
-- Output: Output MUST be a JSON object containing the caption for each platform.
+MANDATORY RULES:
+1. Hashtags: Include AT LEAST 5+ relevant, high-traffic hashtags for LinkedIn, Instagram, Facebook, and Pinterest (and 2-3 for X). Never skip hashtags!
+2. Concise & High-Impact (No Wasted Space): Write short, punchy paragraphs with substance. Avoid excessive blank lines or fluffy filler text. Every line must deliver value.
+3. Structure: 
+   - Strong hook line
+   - Concise body / takeaway (1-2 short tight paragraphs)
+   - Quick Call to Action (CTA)
+   - 5+ Hashtags on the final line(s)
+4. Tone: Strongly embody the "{tone}" tone across all platforms.
+5. Character Limits: The complete text + all hashtags MUST stay strictly within each platform's character limit.
+6. Output: Output MUST be a JSON object containing the caption for each requested platform ID: {", ".join(platform_list)}.
 """
-        from google.genai import types
-        
+
         caption_text_map = {}
         fallback_used = False
         try:
-            response = generate_content_with_retry(
+            response = generate_gemini_content_with_retry(
                 client=client,
-                model=DEFAULT_GEMINI_MODEL,
                 contents=prompt,
                 config=types.GenerateContentConfig(
                     response_mime_type="application/json",
@@ -287,47 +251,34 @@ Requirements:
                 )
             )
 
-            # Parse structured output safely
-            try:
-                if response.parsed:
-                    if hasattr(response.parsed, "model_dump"):
-                        caption_text_map = response.parsed.model_dump()
-                    else:
-                        caption_text_map = response.parsed.__dict__
+            if response.parsed:
+                if hasattr(response.parsed, "model_dump"):
+                    caption_text_map = response.parsed.model_dump()
                 else:
-                    import json
-                    caption_text_map = json.loads(response.text)
-            except Exception:
-                try:
-                    import json
-                    caption_text_map = json.loads(response.text)
-                except Exception:
-                    fallback_used = True
-                    caption_text_map = {}
+                    caption_text_map = response.parsed.__dict__
+            else:
+                caption_text_map = json.loads(response.text)
         except Exception as caption_error:
-            if not is_model_lookup_error(caption_error):
-                raise
+            print(f"Error generating structured captions: {caption_error}")
             fallback_used = True
+            caption_text_map = {}
 
+        results = {}
         for platform_key in platform_list:
             if platform_key not in PLATFORM_RULES:
                 continue
             rules = PLATFORM_RULES[platform_key]
             caption_text = caption_text_map.get(platform_key) or ""
-            
-            # If returned as non-string, cast to string
-            if caption_text is None:
-                caption_text = ""
-            elif not isinstance(caption_text, str):
+            if not isinstance(caption_text, str):
                 caption_text = str(caption_text)
 
             if not caption_text.strip():
                 fallback_used = True
                 caption_text = build_fallback_caption(platform_key, image_description, tone, context)
-                
+
             results[platform_key] = {
                 "label": rules["label"],
-                "caption": caption_text.strip(),
+                "caption": clamp_caption(caption_text.strip(), rules["max_chars"]),
                 "max_chars": rules["max_chars"]
             }
 
@@ -337,34 +288,29 @@ Requirements:
             "fallback_used": fallback_used
         }
 
+    except HTTPException:
+        raise
     except Exception as e:
-        # Log error trace for debugging
         import traceback
         traceback.print_exc()
 
-        if isinstance(e, HTTPException):
-            return JSONResponse(status_code=e.status_code, content={"detail": e.detail})
-        
         err_msg = str(e)
         status_code = 400
-        # If API key is wrong, genai SDK usually raises ClientError containing API_KEY_INVALID or 403
-        if "api_key" in err_msg.lower() or "api key" in err_msg.lower() or "403" in err_msg or "unauthorized" in err_msg.lower():
-            err_msg = "Invalid Gemini API Key. Please verify the server configuration."
-            status_code = 400
+        if "api_key" in err_msg.lower() or "403" in err_msg or "unauthorized" in err_msg.lower():
+            err_msg = "Invalid Gemini API Key. Please verify your API key."
+            status_code = 401
         elif "quota" in err_msg.lower() or "rate limit" in err_msg.lower() or "429" in err_msg:
-            err_msg = "Gemini API rate limit exceeded. Please try again shortly."
+            err_msg = "Gemini API rate limit reached. Please wait a moment and try again."
             status_code = 429
 
         return JSONResponse(status_code=status_code, content={"detail": err_msg})
 
     finally:
-        # Cleanup temporary file
         if temp_file_path and os.path.exists(temp_file_path):
             try:
                 os.remove(temp_file_path)
             except Exception:
                 pass
-        # Cleanup uploaded file from Gemini File API
         if uploaded_file and client:
             try:
                 client.files.delete(name=uploaded_file.name)

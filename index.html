@@ -54,7 +54,7 @@
     <header class="text-center mb-6 md:mb-10">
       <div id="modelBadge" class="hidden inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-indigo-500/10 border border-indigo-500/20 text-indigo-300 text-sm font-medium mb-3">
         <span class="w-2 h-2 rounded-full bg-indigo-400 animate-ping"></span>
-        Google Gemini 3.5 Multimodal
+        Google Gemini 3.5 Flash Multimodal
       </div>
       <h1 class="text-4xl md:text-5xl font-extrabold font-display tracking-tight text-white mb-3">
         Social Media <span class="text-transparent bg-clip-text bg-gradient-to-r from-indigo-400 via-purple-400 to-pink-400">Caption Generator</span>
@@ -92,7 +92,7 @@
                   <span class="text-[10px] text-slate-500 font-normal normal-case">Stored locally</span>
                 </label>
                 <div class="relative">
-                  <input type="password" id="apiKey" placeholder="Enter custom API Key..." 
+                  <input type="password" id="apiKey" placeholder="Enter Gemini API Key..." 
                          class="w-full bg-slate-900/60 border border-slate-700/60 rounded-xl pl-4 pr-10 py-3 text-sm focus:outline-none focus:border-indigo-500 text-white placeholder-slate-600 transition-colors">
                   <button type="button" id="toggleApiKeyBtn" class="absolute right-3 top-1/2 -translate-y-1/2 text-slate-500 hover:text-slate-300 transition-colors">
                     <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" id="toggleApiKeyIcon">
@@ -102,7 +102,7 @@
                   </button>
                 </div>
                 <p class="text-[10px] text-indigo-400/80 mt-1.5 leading-relaxed">
-                  Optional if server-side GEMINI_API_KEY is configured.
+                  Optional if server-side GEMINI_API_KEY is configured in .env.
                 </p>
               </div>
             </details>
@@ -123,27 +123,34 @@
 
           <!-- Platforms Selection -->
           <div class="mb-6">
-            <label class="block text-xs font-semibold uppercase tracking-wider text-slate-400 mb-3">Target Platforms</label>
+            <div class="flex items-center justify-between mb-3">
+              <label class="block text-xs font-semibold uppercase tracking-wider text-slate-400">Target Platforms</label>
+              <div class="flex items-center gap-2">
+                <button type="button" id="selectAllPlatformsBtn" class="text-[11px] text-indigo-400 hover:text-indigo-300 font-medium transition-colors">Select All</button>
+                <span class="text-slate-600 text-[10px]">|</span>
+                <button type="button" id="clearAllPlatformsBtn" class="text-[11px] text-slate-400 hover:text-slate-300 font-medium transition-colors">Clear</button>
+              </div>
+            </div>
             <div class="grid grid-cols-2 gap-3" id="platformContainer">
-              <button type="button" data-platform="instagram" class="platform-btn active border border-slate-700/50 rounded-xl py-2.5 px-3 text-sm font-semibold flex items-center justify-center transition-all duration-200">
+              <button type="button" data-platform="instagram" class="platform-btn bg-slate-900/40 text-slate-400 hover:text-white hover:border-slate-600 border border-slate-700/50 rounded-xl py-2.5 px-3 text-sm font-semibold flex items-center justify-center transition-all duration-200">
                 Instagram
               </button>
-              <button type="button" data-platform="x" class="platform-btn active border border-slate-700/50 rounded-xl py-2.5 px-3 text-sm font-semibold flex items-center justify-center transition-all duration-200">
+              <button type="button" data-platform="x" class="platform-btn bg-slate-900/40 text-slate-400 hover:text-white hover:border-slate-600 border border-slate-700/50 rounded-xl py-2.5 px-3 text-sm font-semibold flex items-center justify-center transition-all duration-200">
                 X (Twitter)
               </button>
-              <button type="button" data-platform="facebook" class="platform-btn active border border-slate-700/50 rounded-xl py-2.5 px-3 text-sm font-semibold flex items-center justify-center transition-all duration-200">
+              <button type="button" data-platform="facebook" class="platform-btn bg-slate-900/40 text-slate-400 hover:text-white hover:border-slate-600 border border-slate-700/50 rounded-xl py-2.5 px-3 text-sm font-semibold flex items-center justify-center transition-all duration-200">
                 Facebook
               </button>
-              <button type="button" data-platform="linkedin" class="platform-btn active border border-slate-700/50 rounded-xl py-2.5 px-3 text-sm font-semibold flex items-center justify-center transition-all duration-200">
+              <button type="button" data-platform="linkedin" class="platform-btn bg-slate-900/40 text-slate-400 hover:text-white hover:border-slate-600 border border-slate-700/50 rounded-xl py-2.5 px-3 text-sm font-semibold flex items-center justify-center transition-all duration-200">
                 LinkedIn
               </button>
-              <button type="button" data-platform="pinterest" class="platform-btn active border border-slate-700/50 rounded-xl py-2.5 px-3 text-sm font-semibold flex items-center justify-center transition-all duration-200">
+              <button type="button" data-platform="pinterest" class="platform-btn bg-slate-900/40 text-slate-400 hover:text-white hover:border-slate-600 border border-slate-700/50 rounded-xl py-2.5 px-3 text-sm font-semibold flex items-center justify-center transition-all duration-200">
                 Pinterest
               </button>
-              <button type="button" data-platform="youtube" class="platform-btn active border border-slate-700/50 rounded-xl py-2.5 px-3 text-sm font-semibold flex items-center justify-center transition-all duration-200">
+              <button type="button" data-platform="youtube" class="platform-btn bg-slate-900/40 text-slate-400 hover:text-white hover:border-slate-600 border border-slate-700/50 rounded-xl py-2.5 px-3 text-sm font-semibold flex items-center justify-center transition-all duration-200">
                 YouTube
               </button>
-              <button type="button" data-platform="kick" class="platform-btn active border border-slate-700/50 rounded-xl py-2.5 px-3 text-sm font-semibold flex items-center justify-center transition-all duration-200 col-span-2">
+              <button type="button" data-platform="kick" class="platform-btn bg-slate-900/40 text-slate-400 hover:text-white hover:border-slate-600 border border-slate-700/50 rounded-xl py-2.5 px-3 text-sm font-semibold flex items-center justify-center transition-all duration-200 col-span-2">
                 Kick
               </button>
             </div>
@@ -291,7 +298,7 @@
 
     // Load API Key from localStorage
     if (apiKeyInput) {
-      apiKeyInput.value = localStorage.getItem('gemini_api_key') || '';
+      apiKeyInput.value = localStorage.getItem('gemini_api_key') || localStorage.getItem('groq_api_key') || '';
       apiKeyInput.addEventListener('input', () => {
         localStorage.setItem('gemini_api_key', apiKeyInput.value.trim());
       });
@@ -339,6 +346,23 @@
         validateInputs();
       });
     });
+
+    const selectAllPlatformsBtn = document.getElementById('selectAllPlatformsBtn');
+    const clearAllPlatformsBtn = document.getElementById('clearAllPlatformsBtn');
+
+    if (selectAllPlatformsBtn) {
+      selectAllPlatformsBtn.addEventListener('click', () => {
+        platformButtons.forEach(btn => btn.classList.add('active'));
+        validateInputs();
+      });
+    }
+
+    if (clearAllPlatformsBtn) {
+      clearAllPlatformsBtn.addEventListener('click', () => {
+        platformButtons.forEach(btn => btn.classList.remove('active'));
+        validateInputs();
+      });
+    }
 
     // Dropzone listeners
     dropzone.addEventListener('click', () => {
@@ -407,7 +431,7 @@
 
     function normalizeErrorMessage(msg, status) {
       if (status === 404 || String(msg).trim().toLowerCase() === 'not found') {
-        return 'Caption service endpoint was not found. Please redeploy the app so the updated API route is active.';
+        return 'Caption service or model was not found. Please check that GEMINI_API_KEY is set in your .env or entered in the API key field.';
       }
       return msg;
     }
@@ -537,6 +561,9 @@
         .replace(/`/g, '\\`')
         .replace(/\$/g, '\\$');
     }
+
+    // Initial validation check
+    validateInputs();
   </script>
 </body>
 </html>
