@@ -152,6 +152,7 @@ def health():
 @app.post("/generate-captions")
 @app.post("/api/index")
 @app.post("/api/index.py")
+@app.post("/api")
 @app.post("/")
 async def generate_captions(
     file: UploadFile = File(...),
