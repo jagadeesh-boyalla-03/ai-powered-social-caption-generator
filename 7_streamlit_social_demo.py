@@ -14,7 +14,7 @@ from PIL import Image
 from google import genai
 from dotenv import load_dotenv
 
-# Load API key from .env file
+# Load API key from .env file automatically
 load_dotenv()
 
 PLATFORM_RULES = {
@@ -26,7 +26,7 @@ PLATFORM_RULES = {
     "X (Twitter)": {
         "key": "x",
         "max_chars": 280,
-        "style": "punchy, witty, high-impact concise text; 2-3 hashtags; under 280 characters",
+        "style": "punchy, witty, very concise; 2-3 hashtags; under 280 characters total",
     },
     "Facebook": {
         "key": "facebook",
@@ -57,7 +57,7 @@ if not api_key:
     api_key = st.sidebar.text_input("Enter your Gemini API Key:", type="password")
 
 if not api_key:
-    st.sidebar.warning("⚠️ GEMINI_API_KEY not found in .env or input.")
+    st.sidebar.warning("⚠️ GEMINI_API_KEY environment variable not found in .env.")
     st.info("👉 Please add `GEMINI_API_KEY` to your `.env` file or enter it in the sidebar to generate captions.")
     st.stop()
 
@@ -83,14 +83,14 @@ def generate_content_with_retry(client, contents, max_retries=3):
                     break
     if last_err:
         raise last_err
-    raise Exception("Gemini request failed.")
+    raise Exception("Gemini service temporarily unavailable.")
 
 uploaded_file = st.file_uploader("Choose an image", type=["jpg", "jpeg", "png"])
 
 col1, col2 = st.columns(2)
 with col1:
     selected_platforms = st.multiselect(
-        "Platforms", list(PLATFORM_RULES.keys()), default=[]
+        "Platforms", list(PLATFORM_RULES.keys()), default=["LinkedIn", "Instagram", "X (Twitter)"]
     )
 with col2:
     tone = st.selectbox(
@@ -105,7 +105,7 @@ if uploaded_file is not None:
 
     if st.button("Generate Captions", type="primary", disabled=len(selected_platforms) == 0):
         try:
-            with st.spinner("Analyzing image with Gemini vision..."):
+            with st.spinner("Analyzing image using Gemini Vision..."):
                 image_description = generate_content_with_retry(
                     client=client,
                     contents=[image, "Provide a plain, factual, one-sentence description of this image."]
@@ -127,7 +127,7 @@ Character Limit: strictly under {rules['max_chars']} characters
 Requirements:
 - Tone: {tone}
 - Hashtags: Include 5+ relevant, high-traffic hashtags on the final line(s).
-- Structure: Punchy hook, concise takeaway/body, quick call to action, followed by hashtags.
+- Structure: Punchy hook, concise body/takeaway, quick call to action, followed by hashtags.
 - Output ONLY the ready-to-post caption text without preambles or markdown code fences.
 """
                 with st.spinner(f"Writing {platform_name} caption..."):

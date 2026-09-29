@@ -133,13 +133,20 @@ def generate_gemini_content_with_retry(client: genai.Client, contents, max_retri
     raise Exception("Gemini service unavailable after attempting fallback models.")
 
 @app.get("/", response_class=HTMLResponse)
+@app.get("/index.html", response_class=HTMLResponse)
 def read_index():
     try:
-        path = os.path.join(os.path.dirname(os.path.dirname(__file__)), "index.html")
-        if not os.path.exists(path):
-            path = "index.html"
-        with open(path, "r", encoding="utf-8") as f:
-            return HTMLResponse(content=f.read())
+        possible_paths = [
+            os.path.join(os.path.dirname(os.path.dirname(__file__)), "index.html"),
+            os.path.join(os.path.dirname(__file__), "index.html"),
+            os.path.join(os.getcwd(), "index.html"),
+            "index.html",
+        ]
+        for p in possible_paths:
+            if os.path.exists(p):
+                with open(p, "r", encoding="utf-8") as f:
+                    return HTMLResponse(content=f.read())
+        return HTMLResponse(content="<h1>index.html not found</h1>", status_code=404)
     except Exception as e:
         return HTMLResponse(content=f"Error loading index.html: {str(e)}", status_code=500)
 
