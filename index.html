@@ -3,6 +3,9 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+  <meta http-equiv="Pragma" content="no-cache">
+  <meta http-equiv="Expires" content="0">
   <title>AI-Powered Social Media Caption Generator</title>
   <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&family=Plus+Jakarta+Sans:wght@300;400;500;600;700&display=swap" rel="stylesheet">
   <script src="https://cdn.tailwindcss.com"></script>
@@ -465,7 +468,7 @@
       resultsSection.classList.add('hidden');
       errorCard.classList.add('hidden');
 
-      const endpoints = ['/api/generate-captions', '/api', '/generate-captions', '/api/index'];
+      const endpoints = ['/api/generate_captions', '/api/generate-captions', '/api/index', '/api'];
       let lastErr = null;
       let successData = null;
 

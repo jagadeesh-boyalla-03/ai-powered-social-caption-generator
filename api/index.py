@@ -150,6 +150,8 @@ def health():
 
 @app.post("/api/generate-captions")
 @app.post("/generate-captions")
+@app.post("/api/generate_captions")
+@app.post("/generate_captions")
 @app.post("/api/index")
 @app.post("/api/index.py")
 @app.post("/api")
