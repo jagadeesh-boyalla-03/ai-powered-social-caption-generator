@@ -76,27 +76,26 @@
             Settings
           </h2>
 
-          <!-- Hidden Developer Settings -->
-          <div id="developerSettingsContainer" class="hidden">
-            <details class="group mb-6 border-b border-slate-800/40 pb-4" open>
-              <summary class="list-none flex items-center justify-between text-xs font-semibold uppercase tracking-wider text-slate-500 cursor-pointer select-none hover:text-slate-400 transition-colors">
+          <!-- Settings / API Key Section -->
+          <div id="developerSettingsContainer" class="mb-6">
+            <details class="group border-b border-slate-800/40 pb-4" open>
+              <summary class="list-none flex items-center justify-between text-xs font-semibold uppercase tracking-wider text-slate-400 cursor-pointer select-none hover:text-slate-300 transition-colors">
                 <span class="flex items-center gap-1.5">
-                  <span>Developer Settings</span>
-                  <span class="text-[9px] bg-indigo-500/20 text-indigo-300 px-1.5 py-0.5 rounded border border-indigo-500/30">Dev Mode</span>
+                  <svg class="w-3.5 h-3.5 text-indigo-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 7a2 2 0 012 2m4 0a6 6 0 01-7.743 5.743L11 17H9v2H7v2H4a1 1 0 01-1-1v-2.586a1 1 0 01.293-.707l5.964-5.964A6 6 0 1121 9z" />
+                  </svg>
+                  <span>Gemini API Key</span>
+                  <span class="text-[10px] text-slate-500 font-normal normal-case">(Optional if configured in Vercel)</span>
                 </span>
-                <svg class="h-3.5 w-3.5 transform group-open:rotate-180 transition-transform duration-200" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <svg class="h-3.5 w-3.5 transform group-open:rotate-180 transition-transform duration-200 text-slate-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                   <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
                 </svg>
               </summary>
               
-              <div class="mt-4">
-                <label class="block text-xs font-semibold uppercase tracking-wider text-slate-400 mb-2 flex justify-between items-center">
-                  <span>Gemini API Key</span>
-                  <span class="text-[10px] text-slate-500 font-normal normal-case">Stored locally</span>
-                </label>
+              <div class="mt-3">
                 <div class="relative">
-                  <input type="password" id="apiKey" placeholder="Enter Gemini API Key..." 
-                         class="w-full bg-slate-900/60 border border-slate-700/60 rounded-xl pl-4 pr-10 py-3 text-sm focus:outline-none focus:border-indigo-500 text-white placeholder-slate-600 transition-colors">
+                  <input type="password" id="apiKey" placeholder="Paste Gemini API Key (AQ.Ab... or AIza...)" 
+                         class="w-full bg-slate-900/60 border border-slate-700/60 rounded-xl pl-4 pr-10 py-2.5 text-xs focus:outline-none focus:border-indigo-500 text-white placeholder-slate-600 transition-colors font-mono">
                   <button type="button" id="toggleApiKeyBtn" class="absolute right-3 top-1/2 -translate-y-1/2 text-slate-500 hover:text-slate-300 transition-colors">
                     <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" id="toggleApiKeyIcon">
                       <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
@@ -104,8 +103,8 @@
                     </svg>
                   </button>
                 </div>
-                <p class="text-[10px] text-indigo-400/80 mt-1.5 leading-relaxed">
-                  Optional if server-side GEMINI_API_KEY is configured in .env.
+                <p class="text-[10px] text-slate-500 mt-1.5 leading-relaxed">
+                  Saved safely in your browser. Leave blank if <code class="text-indigo-400">GEMINI_API_KEY</code> is set in Vercel.
                 </p>
               </div>
             </details>
