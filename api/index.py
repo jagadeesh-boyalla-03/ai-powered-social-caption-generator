@@ -792,15 +792,17 @@ def read_index():
 def serve_static(file_path: str):
     """Serves static assets such as images and icons."""
     possible_paths = [
-        os.path.join(os.path.dirname(os.path.dirname(__file__)), "static", file_path),
-        os.path.join(os.path.dirname(__file__), "static", file_path),
+        os.path.join(os.path.dirname(os.path.abspath(__file__)), "static", file_path),
+        os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "static", file_path),
         os.path.join(os.getcwd(), "static", file_path),
-        "static",
+        os.path.join(os.getcwd(), "api", "static", file_path),
+        os.path.join("/var/task", "static", file_path),
+        os.path.join("/var/task", "api", "static", file_path),
     ]
     for p in possible_paths:
         if os.path.exists(p) and os.path.isfile(p):
             return FileResponse(p)
-    logger.warning("Static file not found: %s", file_path)
+    logger.warning("Static file not found: %s. Searched: %s", file_path, possible_paths)
     raise HTTPException(status_code=404, detail="File not found")
 
 @app.get("/api/health")
