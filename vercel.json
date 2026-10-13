@@ -5,9 +5,9 @@
       "use": "@vercel/python",
       "config": {
         "includeFiles": [
+          "api/**",
           "frontend/**",
           "static/**",
-          "api/static/**",
           "index.html"
         ]
       }

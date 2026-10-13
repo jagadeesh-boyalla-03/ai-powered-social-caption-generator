@@ -62,7 +62,7 @@ logger.info("Environment variables loaded. Log level set to %s", LOG_LEVEL)
 app = FastAPI(
     title="AI Social Media Caption API with Authentication",
     description="Transforms visual media into platform-optimized social media captions with user auth & history.",
-    version="2.0.0"
+    version="2.1.0"
 )
 
 # Enable Cross-Origin Resource Sharing (CORS) to allow browser client requests
@@ -769,14 +769,14 @@ def read_index():
     """Serves the main single-page application frontend."""
     try:
         possible_paths = [
-            os.path.join(os.path.dirname(os.path.dirname(__file__)), "frontend", "index.html"),
-            os.path.join(os.path.dirname(__file__), "frontend", "index.html"),
-            os.path.join(os.getcwd(), "frontend", "index.html"),
-            os.path.join(os.path.dirname(os.path.dirname(__file__)), "index.html"),
             os.path.join(os.path.dirname(__file__), "index.html"),
+            os.path.join(os.path.dirname(__file__), "frontend", "index.html"),
+            os.path.join(os.path.dirname(os.path.dirname(__file__)), "frontend", "index.html"),
+            os.path.join(os.path.dirname(os.path.dirname(__file__)), "index.html"),
+            os.path.join(os.getcwd(), "frontend", "index.html"),
             os.path.join(os.getcwd(), "index.html"),
-            "frontend/index.html",
             "index.html",
+            "frontend/index.html",
         ]
         for p in possible_paths:
             if os.path.exists(p):

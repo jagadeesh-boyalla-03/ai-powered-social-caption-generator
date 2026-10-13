@@ -1,0 +1,1330 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+  <meta http-equiv="Pragma" content="no-cache">
+  <meta http-equiv="Expires" content="0">
+  <title>AI Social Media Caption Studio - Generative AI for Creators</title>
+  <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800;900&family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          fontFamily: {
+            sans: ['"Plus Jakarta Sans"', 'sans-serif'],
+            display: ['Outfit', 'sans-serif'],
+          },
+          colors: {
+            dribbble: {
+              bg: '#121316',
+              card: '#18191e',
+              input: '#1f2128',
+              orange: '#fca311',
+              orangeHover: '#e5920b',
+            }
+          }
+        }
+      }
+    }
+  </script>
+  <style>
+    body {
+      background: radial-gradient(circle at 50% 0%, #1e1b4b 0%, #0c0e17 75%);
+      min-height: 100vh;
+    }
+    .glass-card {
+      background: rgba(24, 25, 30, 0.65);
+      backdrop-filter: blur(16px);
+      border: 1px solid rgba(255, 255, 255, 0.08);
+    }
+    .auth-card {
+      background: #131418;
+      border: 1px solid rgba(255, 255, 255, 0.1);
+    }
+    .platform-btn.active {
+      background: linear-gradient(135deg, #6366f1 0%, #4f46e5 100%);
+      border-color: #818cf8;
+      box-shadow: 0 0 15px rgba(99, 102, 241, 0.4);
+    }
+    .custom-scrollbar::-webkit-scrollbar {
+      width: 6px;
+    }
+    .custom-scrollbar::-webkit-scrollbar-track {
+      background: transparent;
+    }
+    .custom-scrollbar::-webkit-scrollbar-thumb {
+      background: rgba(255, 255, 255, 0.1);
+      border-radius: 4px;
+    }
+    .custom-scrollbar::-webkit-scrollbar-thumb:hover {
+      background: rgba(255, 255, 255, 0.2);
+    }
+    .glow-amber {
+      box-shadow: 0 4px 20px rgba(252, 163, 17, 0.25);
+    }
+    .glow-amber:hover {
+      box-shadow: 0 6px 28px rgba(252, 163, 17, 0.4);
+    }
+  </style>
+</head>
+<body class="text-slate-200 antialiased py-4 px-4 md:py-8 md:px-8">
+  <div class="max-w-5xl mx-auto">
+    
+    <!-- Top Navigation Bar -->
+    <nav class="glass-card rounded-2xl px-5 py-3.5 mb-8 flex items-center justify-between shadow-2xl border border-slate-700/50">
+      <!-- Brand Logo -->
+      <div class="flex items-center gap-3 cursor-pointer" onclick="window.location.reload()">
+        <div class="w-10 h-10 rounded-xl bg-gradient-to-tr from-amber-400 via-orange-500 to-indigo-600 flex items-center justify-center shadow-lg shadow-orange-500/20">
+          <svg class="w-5 h-5 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M13 10V3L4 14h7v7l9-11h-7z" />
+          </svg>
+        </div>
+        <div>
+          <span class="font-extrabold font-display text-lg tracking-tight text-white block leading-none">Caption Studio</span>
+          <span class="text-[10px] text-amber-400 font-semibold tracking-wider uppercase">Generative AI</span>
+        </div>
+      </div>
+
+      <!-- Auth State Control (Nav Actions) -->
+      <div class="flex items-center gap-3">
+        <!-- Unauthenticated Controls -->
+        <div id="unauthControls" class="flex items-center gap-2.5">
+          <button type="button" id="navSignInBtn" class="text-xs md:text-sm font-semibold text-slate-300 hover:text-white px-3.5 py-2 rounded-xl hover:bg-slate-800/60 transition-all">
+            Log in
+          </button>
+          <button type="button" id="navSignUpBtn" class="text-xs md:text-sm font-bold text-slate-950 bg-[#fca311] hover:bg-[#e5920b] px-4 py-2 rounded-xl shadow-lg glow-amber transition-all">
+            Sign up
+          </button>
+        </div>
+
+        <!-- Authenticated Controls -->
+        <div id="authControls" class="hidden flex items-center gap-3">
+          <!-- History Button -->
+          <button type="button" id="historyBtn" class="flex items-center gap-2 text-xs md:text-sm font-medium text-slate-300 hover:text-white bg-slate-800/70 hover:bg-slate-800 border border-slate-700/60 px-3.5 py-2 rounded-xl transition-all">
+            <svg class="w-4 h-4 text-amber-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+            </svg>
+            <span>Saved Captions</span>
+            <span id="historyBadge" class="hidden bg-amber-500 text-slate-950 text-[10px] font-extrabold px-1.5 py-0.2 rounded-full">0</span>
+          </button>
+
+          <!-- User Profile Dropdown Menu Trigger -->
+          <div class="relative">
+            <button type="button" id="userMenuBtn" class="flex items-center gap-2.5 bg-slate-800 hover:bg-slate-750 border border-slate-700/80 px-3 py-1.5 rounded-xl transition-all">
+              <div id="userAvatar" class="w-7 h-7 rounded-lg bg-gradient-to-tr from-amber-400 to-orange-500 text-slate-950 text-xs font-black flex items-center justify-center shadow-sm">
+                U
+              </div>
+              <span id="navUserName" class="text-xs font-semibold text-white max-w-[100px] md:max-w-[140px] truncate">User</span>
+              <svg class="w-3.5 h-3.5 text-slate-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
+              </svg>
+            </button>
+
+            <!-- Dropdown Menu -->
+            <div id="userDropdown" class="hidden absolute right-0 mt-2 w-56 auth-card rounded-xl shadow-2xl p-2 z-50 border border-slate-700/70">
+              <div class="px-3 py-2 border-b border-slate-800 mb-1">
+                <p id="dropdownFullName" class="text-xs font-bold text-white truncate">User Name</p>
+                <p id="dropdownEmail" class="text-[11px] text-slate-400 truncate">user@example.com</p>
+              </div>
+              <button type="button" id="dropdownHistoryBtn" class="w-full flex items-center gap-2 px-3 py-2 text-xs font-medium text-slate-300 hover:text-white hover:bg-slate-800 rounded-lg transition-colors text-left">
+                <svg class="w-4 h-4 text-amber-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10" />
+                </svg>
+                <span>Saved Captions</span>
+              </button>
+              <button type="button" id="logoutBtn" class="w-full flex items-center gap-2 px-3 py-2 text-xs font-semibold text-red-400 hover:text-red-300 hover:bg-red-500/10 rounded-lg transition-colors text-left mt-1 border-t border-slate-800">
+                <svg class="w-4 h-4 text-red-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
+                </svg>
+                <span>Sign Out</span>
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </nav>
+
+    <!-- ================= VIEW 1: FIRST AUTHENTICATION SCREEN (DEFAULT) ================= -->
+    <main id="authScreen" class="py-4 md:py-8 transition-all duration-300">
+      <div class="auth-card w-full max-w-4xl mx-auto rounded-3xl shadow-2xl overflow-hidden border border-slate-800 grid grid-cols-1 md:grid-cols-12 relative">
+        
+        <!-- Left Column: Sleek Form matching Dribbble Reference -->
+        <div class="p-8 md:p-12 md:col-span-6 flex flex-col justify-between bg-[#121316]">
+          <div>
+            <!-- Title & Subtitle -->
+            <h1 id="authMainTitle" class="text-3xl md:text-4xl font-extrabold font-display text-white tracking-tight mb-2">
+              Sign up
+            </h1>
+            <p id="authMainSubtitle" class="text-xs md:text-sm text-slate-400 mb-6">
+              Sign up with Open account
+            </p>
+
+            <!-- Social Open Account Pills (Google / Apple) -->
+            <div class="grid grid-cols-2 gap-3 mb-6">
+              <!-- Google Button -->
+              <button type="button" id="socialGoogleBtn" class="flex items-center justify-center gap-2.5 bg-[#1f2128] hover:bg-[#282b34] text-white text-xs font-semibold py-3 px-4 rounded-xl border border-slate-700/60 transition-all">
+                <svg class="w-4 h-4" viewBox="0 0 24 24">
+                  <path fill="#EA4335" d="M12 5c1.6 0 3 .6 4.1 1.7l3.1-3.1C17.3 1.8 14.8 1 12 1 7.5 1 3.7 3.6 1.9 7.3l3.7 2.9C6.5 7.4 9 5 12 5z"/>
+                  <path fill="#4285F4" d="M23.5 12.3c0-.8-.1-1.6-.2-2.3H12v4.5h6.5c-.3 1.5-1.1 2.8-2.4 3.7l3.7 2.9c2.2-2 3.7-5 3.7-8.8z"/>
+                  <path fill="#FBBC05" d="M5.6 14.8c-.2-.7-.4-1.5-.4-2.3 0-.8.2-1.6.4-2.3L1.9 7.3C.7 9.7 0 12.3 0 15.2s.7 5.5 1.9 7.9l3.7-2.9z"/>
+                  <path fill="#34A853" d="M12 23.5c3.2 0 6-1.1 8-3l-3.7-2.9c-1.1.7-2.5 1.2-4.3 1.2-3 0-5.5-2.4-6.4-5.2L1.9 16.5C3.7 20.2 7.5 23.5 12 23.5z"/>
+                </svg>
+                <span>Google</span>
+              </button>
+
+              <!-- Outlook Mail Button -->
+              <button type="button" id="socialOutlookBtn" class="flex items-center justify-center gap-2.5 bg-[#1f2128] hover:bg-[#282b34] text-white text-xs font-semibold py-3 px-4 rounded-xl border border-slate-700/60 transition-all">
+                <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none">
+                  <rect x="1" y="4" width="22" height="16" rx="3" fill="#0078D4"/>
+                  <path d="M2.5 6L12 13L21.5 6" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                </svg>
+                <span>Outlook</span>
+              </button>
+            </div>
+
+            <!-- Divider -->
+            <div class="relative flex items-center justify-center mb-6">
+              <div class="border-t border-slate-800 w-full"></div>
+              <span class="bg-[#121316] px-3 text-[11px] text-slate-500 font-medium">Or continue with email address</span>
+            </div>
+
+            <!-- Alert Box -->
+            <div id="authAlert" class="hidden mb-4 p-3 rounded-xl text-xs font-medium border"></div>
+
+            <!-- Form Area -->
+            <form id="authForm" class="space-y-3.5">
+              <!-- Full Name (Only visible during Sign Up) -->
+              <div id="nameFieldGroup">
+                <div class="relative">
+                  <div class="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-slate-500">
+                    <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+                    </svg>
+                  </div>
+                  <input type="text" id="authName" placeholder="Your full name" 
+                         class="w-full bg-[#1f2128] border border-slate-800 rounded-xl pl-10 pr-4 py-3 text-sm text-white placeholder-slate-500 focus:outline-none focus:border-amber-400 transition-colors">
+                </div>
+              </div>
+
+              <!-- Email Address Input -->
+              <div class="relative">
+                <div class="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-slate-500">
+                  <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
+                  </svg>
+                </div>
+                <input type="email" id="authEmail" required placeholder="Your email" 
+                       class="w-full bg-[#1f2128] border border-slate-800 rounded-xl pl-10 pr-4 py-3 text-sm text-white placeholder-slate-500 focus:outline-none focus:border-amber-400 transition-colors">
+              </div>
+
+              <!-- Password Input -->
+              <div class="relative">
+                <div class="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-slate-500">
+                  <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
+                  </svg>
+                </div>
+                <input type="password" id="authPassword" required minlength="6" placeholder="Your password" 
+                       class="w-full bg-[#1f2128] border border-slate-800 rounded-xl pl-10 pr-10 py-3 text-sm text-white placeholder-slate-500 focus:outline-none focus:border-amber-400 transition-colors font-mono">
+                <button type="button" class="toggle-pwd absolute right-3 top-1/2 -translate-y-1/2 text-slate-500 hover:text-slate-300">
+                  <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+                  </svg>
+                </button>
+              </div>
+
+              <!-- Primary Orange "Continue" Button -->
+              <div class="pt-2">
+                <button type="submit" id="authSubmitBtn" class="w-full bg-[#fca311] hover:bg-[#e5920b] text-slate-950 font-extrabold py-3.5 rounded-xl shadow-lg glow-amber text-sm transition-all flex items-center justify-center gap-2 cursor-pointer">
+                  <span>Continue</span>
+                </button>
+              </div>
+            </form>
+
+            <!-- Toggle between Sign Up and Sign In -->
+            <div class="mt-5 text-center">
+              <p class="text-xs text-slate-400" id="authSwitchText">
+                Already have an account? 
+                <button type="button" id="authToggleModeBtn" class="text-amber-400 hover:text-amber-300 font-bold ml-1 hover:underline">Log in</button>
+              </p>
+            </div>
+          </div>
+
+          <!-- Footer Disclaimer -->
+          <div class="mt-8 pt-4 border-t border-slate-800/80 text-center">
+            <p class="text-[10px] text-slate-500 leading-relaxed">
+              This site is protected by reCAPTCHA and the Google Privacy Policy.
+            </p>
+            <button type="button" id="continueGuestBtn" class="text-[11px] text-slate-400 hover:text-amber-400 mt-2 font-semibold transition-colors">
+              Skip & Continue as Guest &rarr;
+            </button>
+          </div>
+        </div>
+
+        <!-- Right Column: 3D Friendly Robot Mascot Art -->
+        <div class="md:col-span-6 bg-[#0c0e12] flex flex-col items-center justify-center p-8 relative overflow-hidden border-t md:border-t-0 md:border-l border-slate-800">
+          <!-- Ambient Glow -->
+          <div class="absolute w-72 h-72 rounded-full bg-amber-500/10 blur-3xl pointer-events-none -top-10 -right-10"></div>
+          <div class="absolute w-60 h-60 rounded-full bg-indigo-500/10 blur-3xl pointer-events-none -bottom-10 -left-10"></div>
+
+          <!-- 3D Mascot Image -->
+          <div class="relative z-10 max-w-[320px] md:max-w-[360px] w-full flex flex-col items-center">
+            <img src="/static/auth_robot.jpg" alt="AI Robot Mascot" onerror="this.onerror=null; this.src='https://images.unsplash.com/photo-1485827404703-89b55fcc595e?w=800&auto=format&fit=crop&q=80';" class="w-full h-auto object-contain rounded-2xl shadow-2xl transition-transform duration-500 hover:scale-105 select-none pointer-events-none">
+            
+            <div class="mt-4 text-center">
+              <div class="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-amber-400/10 border border-amber-400/20 text-amber-300 text-[11px] font-bold">
+                <span class="w-1.5 h-1.5 rounded-full bg-amber-400 animate-pulse"></span>
+                AI Caption Generator Studio
+              </div>
+              <p class="text-xs text-slate-400 mt-2 max-w-xs leading-relaxed">
+                Log in to generate platform-ready captions, viral hooks & hashtags in seconds!
+              </p>
+            </div>
+          </div>
+        </div>
+
+      </div>
+    </main>
+
+    <!-- ================= VIEW 2: AI CAPTION GENERATOR WORKSPACE (SHOWN AFTER LOGIN) ================= -->
+    <main id="appWorkspace" class="hidden transition-all duration-300">
+      <!-- Hero Header -->
+      <header class="text-center mb-8">
+        <h1 class="text-4xl md:text-5xl font-extrabold font-display tracking-tight text-white mb-3">
+          Multi-Platform <span class="text-transparent bg-clip-text bg-gradient-to-r from-amber-400 via-orange-400 to-indigo-400">Social Captions</span>
+        </h1>
+        <p class="text-slate-400 text-sm md:text-base max-w-lg mx-auto">
+          Transform any image or video into high-converting, tailored social captions for Instagram, X, Facebook, LinkedIn, Pinterest, YouTube & Kick.
+        </p>
+      </header>
+
+      <!-- Main Workspace Grid -->
+      <div class="grid grid-cols-1 lg:grid-cols-12 gap-8">
+        <!-- Controls Column -->
+        <div class="lg:col-span-5 flex flex-col gap-6">
+          <!-- Configuration Card -->
+          <section class="glass-card rounded-2xl p-6 shadow-xl">
+            <h2 id="settingsTitle" class="text-lg font-bold font-display text-white mb-4 flex items-center justify-between">
+              <span>Caption Settings</span>
+              <span class="text-xs font-normal text-slate-400">Customize Output</span>
+            </h2>
+
+            <!-- Settings / API Key Section (Hidden for security) -->
+            <div id="developerSettingsContainer" class="hidden mb-6">
+              <details class="group border-b border-slate-800/40 pb-4">
+                <summary class="list-none flex items-center justify-between text-xs font-semibold uppercase tracking-wider text-slate-400 cursor-pointer select-none hover:text-slate-300 transition-colors">
+                  <span class="flex items-center gap-1.5">
+                    <svg class="w-3.5 h-3.5 text-amber-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 7a2 2 0 012 2m4 0a6 6 0 01-7.743 5.743L11 17H9v2H7v2H4a1 1 0 01-1-1v-2.586a1 1 0 01.293-.707l5.964-5.964A6 6 0 1121 9z" />
+                    </svg>
+                    <span>Gemini API Key</span>
+                    <span class="text-[10px] text-slate-500 font-normal normal-case">(Developer Mode)</span>
+                  </span>
+                  <svg class="h-3.5 w-3.5 transform group-open:rotate-180 transition-transform duration-200 text-slate-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
+                  </svg>
+                </summary>
+                
+                <div class="mt-3">
+                  <div class="relative">
+                    <input type="password" id="apiKey" placeholder="Paste Gemini API Key (AQ.Ab... or AIza...)" 
+                           class="w-full bg-slate-900/60 border border-slate-700/60 rounded-xl pl-4 pr-10 py-2.5 text-xs focus:outline-none focus:border-amber-400 text-white placeholder-slate-600 transition-colors font-mono">
+                    <button type="button" id="toggleApiKeyBtn" class="absolute right-3 top-1/2 -translate-y-1/2 text-slate-500 hover:text-slate-300 transition-colors">
+                      <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" id="toggleApiKeyIcon">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+                      </svg>
+                    </button>
+                  </div>
+                  <p class="text-[10px] text-slate-500 mt-1.5 leading-relaxed">
+                    Saved safely in browser. Leave blank if <code class="text-amber-400">GEMINI_API_KEY</code> is configured in backend environment.
+                  </p>
+                </div>
+              </details>
+            </div>
+
+            <!-- Tone Selector -->
+            <div class="mb-6">
+              <label class="block text-xs font-semibold uppercase tracking-wider text-slate-400 mb-2">Caption Tone</label>
+              <select id="tone" class="w-full bg-slate-900/60 border border-slate-700/60 rounded-xl px-4 py-3 text-sm focus:outline-none focus:border-amber-400 text-white">
+                <option value="Friendly and upbeat">Friendly & Upbeat</option>
+                <option value="Playful">Playful & Witty</option>
+                <option value="Professional">Professional & Authority</option>
+                <option value="Inspirational">Inspirational & Motivating</option>
+                <option value="Humorous">Humorous & Entertaining</option>
+                <option value="Minimal/aesthetic">Minimalist / Aesthetic</option>
+              </select>
+            </div>
+
+            <!-- Platforms Selection -->
+            <div class="mb-6">
+              <div class="flex items-center justify-between mb-3">
+                <label class="block text-xs font-semibold uppercase tracking-wider text-slate-400">Target Platforms</label>
+                <div class="flex items-center gap-2">
+                  <button type="button" id="selectAllPlatformsBtn" class="text-[11px] text-amber-400 hover:text-amber-300 font-medium transition-colors">Select All</button>
+                  <span class="text-slate-600 text-[10px]">|</span>
+                  <button type="button" id="clearAllPlatformsBtn" class="text-[11px] text-slate-400 hover:text-slate-300 font-medium transition-colors">Clear</button>
+                </div>
+              </div>
+              <div class="grid grid-cols-2 gap-3" id="platformContainer">
+                <button type="button" data-platform="instagram" class="platform-btn bg-slate-900/40 text-slate-400 hover:text-white hover:border-slate-600 border border-slate-700/50 rounded-xl py-2.5 px-3 text-sm font-semibold flex items-center justify-center transition-all duration-200">
+                  Instagram
+                </button>
+                <button type="button" data-platform="x" class="platform-btn bg-slate-900/40 text-slate-400 hover:text-white hover:border-slate-600 border border-slate-700/50 rounded-xl py-2.5 px-3 text-sm font-semibold flex items-center justify-center transition-all duration-200">
+                  X (Twitter)
+                </button>
+                <button type="button" data-platform="facebook" class="platform-btn bg-slate-900/40 text-slate-400 hover:text-white hover:border-slate-600 border border-slate-700/50 rounded-xl py-2.5 px-3 text-sm font-semibold flex items-center justify-center transition-all duration-200">
+                  Facebook
+                </button>
+                <button type="button" data-platform="linkedin" class="platform-btn bg-slate-900/40 text-slate-400 hover:text-white hover:border-slate-600 border border-slate-700/50 rounded-xl py-2.5 px-3 text-sm font-semibold flex items-center justify-center transition-all duration-200">
+                  LinkedIn
+                </button>
+                <button type="button" data-platform="pinterest" class="platform-btn bg-slate-900/40 text-slate-400 hover:text-white hover:border-slate-600 border border-slate-700/50 rounded-xl py-2.5 px-3 text-sm font-semibold flex items-center justify-center transition-all duration-200">
+                  Pinterest
+                </button>
+                <button type="button" data-platform="youtube" class="platform-btn bg-slate-900/40 text-slate-400 hover:text-white hover:border-slate-600 border border-slate-700/50 rounded-xl py-2.5 px-3 text-sm font-semibold flex items-center justify-center transition-all duration-200">
+                  YouTube
+                </button>
+                <button type="button" data-platform="kick" class="platform-btn bg-slate-900/40 text-slate-400 hover:text-white hover:border-slate-600 border border-slate-700/50 rounded-xl py-2.5 px-3 text-sm font-semibold flex items-center justify-center transition-all duration-200 col-span-2">
+                  Kick
+                </button>
+              </div>
+            </div>
+
+            <!-- Context Input with Speech-to-Text Voice Dictation -->
+            <div>
+              <div class="flex items-center justify-between mb-2">
+                <label for="context" class="block text-xs font-semibold uppercase tracking-wider text-slate-400">
+                  Optional Context / Campaign Details
+                </label>
+                <!-- Voice Mic Button -->
+                <button type="button" id="voiceMicBtn" class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-medium bg-slate-900/60 hover:bg-slate-800 text-slate-300 hover:text-white border border-slate-700/60 transition-all cursor-pointer select-none group" title="Click to speak your context details">
+                  <svg id="micIconIdle" class="w-3.5 h-3.5 text-amber-400 group-hover:scale-110 transition-transform" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 11a7 7 0 01-7 7m0 0a7 7 0 01-7-7m7 7v4m0 0H8m4 0h4m-4-8a3 3 0 01-3-3V5a3 3 0 116 0v6a3 3 0 01-3 3z" />
+                  </svg>
+                  <span id="micRecordingPulse" class="hidden relative flex h-2 w-2">
+                    <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-rose-400 opacity-75"></span>
+                    <span class="relative inline-flex rounded-full h-2 w-2 bg-rose-500"></span>
+                  </span>
+                  <span id="micBtnText">Voice Input</span>
+                </button>
+              </div>
+
+              <!-- Real-time Voice Recognition Banner -->
+              <div id="voiceStatusBanner" class="hidden mb-2 px-3 py-1.5 rounded-lg text-[11px] font-medium bg-rose-500/10 border border-rose-500/30 text-rose-300 flex items-center justify-between animate-pulse">
+                <div class="flex items-center gap-2">
+                  <span class="w-2 h-2 rounded-full bg-rose-500 animate-ping"></span>
+                  <span id="voiceStatusMsg">🎙️ Listening... Speak your context now</span>
+                </div>
+                <button type="button" id="cancelVoiceBtn" class="text-rose-300 hover:text-white underline text-[10px] cursor-pointer">Stop</button>
+              </div>
+
+              <textarea id="context" rows="2" 
+                        placeholder="e.g. 'Launching our summer sale 20% off', 'Behind the scenes at tech summit'" 
+                        class="w-full bg-slate-900/60 border border-slate-700/60 rounded-xl px-4 py-3 text-sm focus:outline-none focus:border-amber-400 text-white placeholder-slate-500 resize-none transition-all"></textarea>
+            </div>
+          </section>
+        </div>
+
+        <!-- Upload and Action Column -->
+        <div class="lg:col-span-7 flex flex-col gap-6">
+          <!-- Photo Upload Card -->
+          <section class="glass-card rounded-2xl p-6 shadow-xl flex flex-col justify-between">
+            <div>
+              <div class="flex justify-between items-center mb-4">
+                <h2 class="text-lg font-bold font-display text-white">Upload Media</h2>
+                <span class="text-xs text-slate-400">JPG, PNG, WEBP</span>
+              </div>
+              
+              <!-- Drag and Drop Box -->
+              <div id="dropzone" class="border-2 border-dashed border-slate-700 hover:border-amber-400/70 rounded-2xl p-8 flex flex-col items-center justify-center cursor-pointer transition-all duration-200 bg-slate-900/20 hover:bg-amber-500/5 min-h-[180px]">
+                <input type="file" id="fileInput" accept="image/*" class="hidden">
+                <div id="uploadPrompt" class="text-center">
+                  <svg class="mx-auto h-12 w-12 text-slate-500 mb-3" stroke="currentColor" fill="none" viewBox="0 0 48 48">
+                    <path d="M28 8H12a4 4 0 00-4 4v20m32-12v8m0 0v8a4 4 0 01-4 4H12a4 4 0 01-4-4v-4m32-4l-3.172-3.172a4 4 0 00-5.656 0L28 28M8 32l9.172-9.172a4 4 0 015.656 0L28 28m0 0l4 4m4-24h8m-4-4v8m-12 4h.02" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" />
+                  </svg>
+                  <p class="text-sm font-semibold text-slate-300">Drag & drop photo, or <span class="text-amber-400 hover:underline">browse</span></p>
+                  <p class="text-xs text-slate-500 mt-1">Ready for high-resolution visual analysis</p>
+                </div>
+                <div id="previewContainer" class="hidden relative w-full h-full max-h-[220px] flex items-center justify-center">
+                  <img id="imagePreview" src="#" alt="Preview" class="max-w-full max-h-[180px] rounded-xl object-contain border border-slate-700/60 shadow-lg hidden">
+                  <button type="button" id="removeImageBtn" class="absolute -top-2 -right-2 bg-slate-800 hover:bg-slate-700 text-white rounded-full p-1.5 border border-slate-700 hover:border-red-500 transition-colors shadow-md z-10">
+                    <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M6 18L18 6M6 6l12 12" />
+                    </svg>
+                  </button>
+                </div>
+              </div>
+            </div>
+
+            <div class="mt-6">
+              <button type="button" id="generateBtn" disabled 
+                      class="w-full bg-slate-800/80 text-slate-400 font-bold font-display rounded-xl py-4 flex items-center justify-center gap-2 cursor-not-allowed border border-slate-700/50 shadow-md transition-all duration-200">
+                <span>Generate Social Captions</span>
+              </button>
+              
+              <!-- Custom Inline Error Card -->
+              <div id="errorCard" class="hidden mt-4 bg-red-500/10 border border-red-500/20 text-red-200 text-sm rounded-xl p-4 flex items-start gap-3">
+                <svg class="h-5 w-5 text-red-400 shrink-0 mt-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+                </svg>
+                <div class="flex-1">
+                  <span class="font-semibold block mb-0.5">Notice</span>
+                  <span id="errorMessage" class="text-xs text-red-300"></span>
+                </div>
+                <button type="button" id="closeErrorBtn" class="text-red-400 hover:text-red-300 transition-colors">
+                  <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+                  </svg>
+                </button>
+              </div>
+            </div>
+          </section>
+        </div>
+      </div>
+
+      <!-- Caption Results Container -->
+      <section id="resultsSection" class="hidden mt-10 glass-card rounded-2xl p-6 md:p-8 shadow-2xl">
+        <div class="flex flex-col md:flex-row md:items-center justify-between gap-4 border-b border-slate-800 pb-5 mb-6">
+          <div>
+            <div class="flex items-center gap-2 mb-1">
+              <h2 class="text-xl font-bold font-display text-white">Generated Captions</h2>
+              <span id="savedIndicator" class="hidden text-[10px] font-bold bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 px-2 py-0.5 rounded-full">
+                ✓ Saved to Account
+              </span>
+            </div>
+            <p id="imageCaption" class="text-sm text-slate-400 italic"></p>
+          </div>
+          <button type="button" id="copyAllBtn" class="shrink-0 flex items-center gap-2 bg-[#fca311] hover:bg-[#e5920b] text-slate-950 font-bold text-xs py-2 px-4 rounded-xl shadow-lg glow-amber transition-colors">
+            <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M8 5H6a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2v-1M8 5a2 2 0 002 2h2a2 2 0 002-2M8 5a2 2 0 012-2h2a2 2 0 012 2m0 0h2a2 2 0 012 2v3m2 4H10m0 0l3-3m-3 3l3 3" />
+            </svg>
+            <span>Copy All Captions</span>
+          </button>
+        </div>
+
+        <div id="captionGrid" class="grid grid-cols-1 md:grid-cols-2 gap-5">
+          <!-- Caption cards injected dynamically -->
+        </div>
+      </section>
+    </main>
+
+  </div>
+
+  <!-- Loading Overlay -->
+  <div id="loadingOverlay" class="hidden fixed inset-0 bg-slate-950/80 backdrop-blur-sm z-50 flex flex-col items-center justify-center">
+    <div class="w-16 h-16 border-4 border-amber-500/20 border-t-amber-400 rounded-full animate-spin mb-4"></div>
+    <p class="text-lg font-bold font-display text-white" id="loadingText">Analyzing image with Multimodal AI...</p>
+    <p class="text-sm text-slate-400 mt-1">Generating platform-optimized captions & hashtags...</p>
+  </div>
+
+  <!-- ================= SAVED HISTORY MODAL ================= -->
+  <div id="historyModal" class="hidden fixed inset-0 bg-black/80 backdrop-blur-md z-50 flex items-center justify-center p-4">
+    <div class="auth-card w-full max-w-3xl max-h-[85vh] rounded-3xl shadow-2xl flex flex-col overflow-hidden border border-slate-800">
+      <div class="p-6 border-b border-slate-800 flex items-center justify-between">
+        <div class="flex items-center gap-3">
+          <div class="w-9 h-9 rounded-xl bg-amber-500/10 text-amber-400 flex items-center justify-center border border-amber-500/20">
+            <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+            </svg>
+          </div>
+          <div>
+            <h3 class="font-bold font-display text-white text-base">Your Saved Captions</h3>
+            <p class="text-[11px] text-slate-400">Past generations linked to your account</p>
+          </div>
+        </div>
+        <button type="button" id="closeHistoryModalBtn" class="text-slate-400 hover:text-white p-2 rounded-xl hover:bg-slate-800 transition-colors">
+          <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M6 18L18 6M6 6l12 12" />
+          </svg>
+        </button>
+      </div>
+
+      <!-- History Content Area -->
+      <div id="historyContainer" class="p-6 overflow-y-auto custom-scrollbar flex-1 space-y-4">
+        <div id="historyLoading" class="text-center py-10 text-slate-400">
+          <div class="w-8 h-8 border-2 border-amber-500 border-t-transparent rounded-full animate-spin mx-auto mb-2"></div>
+          <p class="text-xs">Loading your saved history...</p>
+        </div>
+        <div id="historyEmpty" class="hidden text-center py-12 text-slate-400">
+          <svg class="w-12 h-12 mx-auto text-slate-600 mb-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10" />
+          </svg>
+          <p class="text-sm font-semibold text-slate-300">No captions saved yet</p>
+          <p class="text-xs text-slate-500 mt-1">Generate your first captions to automatically save them here!</p>
+        </div>
+        <div id="historyList" class="space-y-4"></div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    // Global Application State
+    const state = {
+      apiKey: '',
+      platforms: ['instagram', 'x', 'facebook', 'linkedin', 'pinterest', 'youtube'],
+      tone: 'Friendly and upbeat',
+      file: null,
+      context: '',
+      user: null,
+      token: localStorage.getItem('caption_auth_token') || '',
+      authMode: 'signup' // 'signup' or 'login'
+    };
+
+    // Primary Views
+    const authScreen = document.getElementById('authScreen');
+    const appWorkspace = document.getElementById('appWorkspace');
+
+    // DOM Elements
+    const fileInput = document.getElementById('fileInput');
+    const dropzone = document.getElementById('dropzone');
+    const uploadPrompt = document.getElementById('uploadPrompt');
+    const previewContainer = document.getElementById('previewContainer');
+    const imagePreview = document.getElementById('imagePreview');
+    const removeImageBtn = document.getElementById('removeImageBtn');
+    const platformButtons = document.querySelectorAll('.platform-btn');
+    const selectAllPlatformsBtn = document.getElementById('selectAllPlatformsBtn');
+    const clearAllPlatformsBtn = document.getElementById('clearAllPlatformsBtn');
+    const toneSelect = document.getElementById('tone');
+    const contextInput = document.getElementById('context');
+    const voiceMicBtn = document.getElementById('voiceMicBtn');
+    const micIconIdle = document.getElementById('micIconIdle');
+    const micRecordingPulse = document.getElementById('micRecordingPulse');
+    const micBtnText = document.getElementById('micBtnText');
+    const voiceStatusBanner = document.getElementById('voiceStatusBanner');
+    const voiceStatusMsg = document.getElementById('voiceStatusMsg');
+    const cancelVoiceBtn = document.getElementById('cancelVoiceBtn');
+    const generateBtn = document.getElementById('generateBtn');
+    const apiKeyInput = document.getElementById('apiKey');
+    const toggleApiKeyBtn = document.getElementById('toggleApiKeyBtn');
+    const loadingOverlay = document.getElementById('loadingOverlay');
+    const resultsSection = document.getElementById('resultsSection');
+    const imageCaption = document.getElementById('imageCaption');
+    const captionGrid = document.getElementById('captionGrid');
+    const copyAllBtn = document.getElementById('copyAllBtn');
+    const errorCard = document.getElementById('errorCard');
+    const errorMessage = document.getElementById('errorMessage');
+    const closeErrorBtn = document.getElementById('closeErrorBtn');
+    const savedIndicator = document.getElementById('savedIndicator');
+
+    // Auth & Navigation Elements
+    const unauthControls = document.getElementById('unauthControls');
+    const authControls = document.getElementById('authControls');
+    const navSignInBtn = document.getElementById('navSignInBtn');
+    const navSignUpBtn = document.getElementById('navSignUpBtn');
+    const userMenuBtn = document.getElementById('userMenuBtn');
+    const userDropdown = document.getElementById('userDropdown');
+    const navUserName = document.getElementById('navUserName');
+    const userAvatar = document.getElementById('userAvatar');
+    const dropdownFullName = document.getElementById('dropdownFullName');
+    const dropdownEmail = document.getElementById('dropdownEmail');
+    const logoutBtn = document.getElementById('logoutBtn');
+    const historyBtn = document.getElementById('historyBtn');
+    const dropdownHistoryBtn = document.getElementById('dropdownHistoryBtn');
+    const historyBadge = document.getElementById('historyBadge');
+
+    // Auth Screen Elements
+    const authMainTitle = document.getElementById('authMainTitle');
+    const authMainSubtitle = document.getElementById('authMainSubtitle');
+    const nameFieldGroup = document.getElementById('nameFieldGroup');
+    const authName = document.getElementById('authName');
+    const authEmail = document.getElementById('authEmail');
+    const authPassword = document.getElementById('authPassword');
+    const authForm = document.getElementById('authForm');
+    const authSubmitBtn = document.getElementById('authSubmitBtn');
+    const authSwitchText = document.getElementById('authSwitchText');
+    const authAlert = document.getElementById('authAlert');
+    const continueGuestBtn = document.getElementById('continueGuestBtn');
+    const socialGoogleBtn = document.getElementById('socialGoogleBtn');
+    const socialOutlookBtn = document.getElementById('socialOutlookBtn');
+
+    // History Modal Elements
+    const historyModal = document.getElementById('historyModal');
+    const closeHistoryModalBtn = document.getElementById('closeHistoryModalBtn');
+    const historyLoading = document.getElementById('historyLoading');
+    const historyEmpty = document.getElementById('historyEmpty');
+    const historyList = document.getElementById('historyList');
+
+    // Initialize API Key from storage
+    const savedKey = localStorage.getItem('gemini_api_key');
+    if (savedKey) {
+      state.apiKey = savedKey;
+      if (apiKeyInput) apiKeyInput.value = savedKey;
+    }
+
+    // Toggle API Key Visibility
+    if (toggleApiKeyBtn && apiKeyInput) {
+      toggleApiKeyBtn.addEventListener('click', () => {
+        apiKeyInput.type = apiKeyInput.type === 'password' ? 'text' : 'password';
+      });
+      apiKeyInput.addEventListener('input', (e) => {
+        state.apiKey = e.target.value.trim();
+        localStorage.setItem('gemini_api_key', state.apiKey);
+        validateInputs();
+      });
+    }
+
+    // Platform Selection Logic
+    platformButtons.forEach(btn => {
+      const p = btn.dataset.platform;
+      if (state.platforms.includes(p)) {
+        btn.classList.add('active');
+      }
+      btn.addEventListener('click', () => {
+        if (state.platforms.includes(p)) {
+          state.platforms = state.platforms.filter(item => item !== p);
+          btn.classList.remove('active');
+        } else {
+          state.platforms.push(p);
+          btn.classList.add('active');
+        }
+        validateInputs();
+      });
+    });
+
+    selectAllPlatformsBtn.addEventListener('click', () => {
+      platformButtons.forEach(btn => {
+        const p = btn.dataset.platform;
+        if (!state.platforms.includes(p)) state.platforms.push(p);
+        btn.classList.add('active');
+      });
+      validateInputs();
+    });
+
+    clearAllPlatformsBtn.addEventListener('click', () => {
+      state.platforms = [];
+      platformButtons.forEach(btn => btn.classList.remove('active'));
+      validateInputs();
+    });
+
+    toneSelect.addEventListener('change', (e) => {
+      state.tone = e.target.value;
+    });
+
+    contextInput.addEventListener('input', (e) => {
+      state.context = e.target.value;
+    });
+
+    // ================= SPEECH RECOGNITION (VOICE INPUT / MIC) =================
+    const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+    let recognition = null;
+    let isRecordingVoice = false;
+    let baseContextText = '';
+
+    if (SpeechRecognition) {
+      recognition = new SpeechRecognition();
+      recognition.continuous = true;
+      recognition.interimResults = true;
+      recognition.lang = 'en-US';
+
+      recognition.onstart = () => {
+        isRecordingVoice = true;
+        baseContextText = contextInput.value ? contextInput.value.trim() + ' ' : '';
+        voiceMicBtn.classList.add('bg-rose-500/20', 'border-rose-500/50', 'text-rose-300');
+        voiceMicBtn.classList.remove('bg-slate-900/60', 'text-slate-300');
+        micIconIdle.classList.add('hidden');
+        micRecordingPulse.classList.remove('hidden');
+        micBtnText.innerText = 'Listening...';
+        voiceStatusBanner.classList.remove('hidden');
+        voiceStatusMsg.innerText = '🎙️ Listening... Speak your context now';
+        contextInput.classList.add('border-rose-500/60', 'ring-1', 'ring-rose-500/40');
+      };
+
+      recognition.onresult = (event) => {
+        let transcript = '';
+        for (let i = event.resultIndex; i < event.results.length; ++i) {
+          transcript += event.results[i][0].transcript;
+        }
+        if (transcript) {
+          contextInput.value = baseContextText + transcript;
+          state.context = contextInput.value;
+        }
+      };
+
+      recognition.onerror = (event) => {
+        console.warn('Speech recognition error:', event.error);
+        if (event.error === 'not-allowed') {
+          showError('Microphone permission was denied. Please allow microphone access in your browser address bar.');
+        } else if (event.error !== 'no-speech') {
+          showError('Voice recognition error: ' + event.error);
+        }
+        stopVoiceRecognition();
+      };
+
+      recognition.onend = () => {
+        stopVoiceRecognition();
+      };
+    }
+
+    function startVoiceRecognition() {
+      if (!SpeechRecognition) {
+        showError('Speech recognition is not supported in this browser. Please try Chrome, Edge, or Safari.');
+        return;
+      }
+      try {
+        recognition.start();
+      } catch (err) {
+        console.warn('Recognition start exception:', err);
+      }
+    }
+
+    function stopVoiceRecognition() {
+      isRecordingVoice = false;
+      if (recognition) {
+        try { recognition.stop(); } catch (_) {}
+      }
+      voiceMicBtn.classList.remove('bg-rose-500/20', 'border-rose-500/50', 'text-rose-300');
+      voiceMicBtn.classList.add('bg-slate-900/60', 'text-slate-300');
+      micIconIdle.classList.remove('hidden');
+      micRecordingPulse.classList.add('hidden');
+      micBtnText.innerText = 'Voice Input';
+      voiceStatusBanner.classList.add('hidden');
+      contextInput.classList.remove('border-rose-500/60', 'ring-1', 'ring-rose-500/40');
+      state.context = contextInput.value;
+    }
+
+    if (voiceMicBtn) {
+      voiceMicBtn.addEventListener('click', () => {
+        if (isRecordingVoice) {
+          stopVoiceRecognition();
+        } else {
+          startVoiceRecognition();
+        }
+      });
+    }
+
+    if (cancelVoiceBtn) {
+      cancelVoiceBtn.addEventListener('click', stopVoiceRecognition);
+    }
+
+    // File Upload Handling
+    dropzone.addEventListener('click', (e) => {
+      if (e.target !== removeImageBtn && !removeImageBtn.contains(e.target)) {
+        fileInput.click();
+      }
+    });
+
+    dropzone.addEventListener('dragover', (e) => {
+      e.preventDefault();
+      dropzone.classList.add('border-amber-400');
+    });
+
+    dropzone.addEventListener('dragleave', () => {
+      dropzone.classList.remove('border-amber-400');
+    });
+
+    dropzone.addEventListener('drop', (e) => {
+      e.preventDefault();
+      dropzone.classList.remove('border-amber-400');
+      if (e.dataTransfer.files && e.dataTransfer.files[0]) {
+        handleFileSelect(e.dataTransfer.files[0]);
+      }
+    });
+
+    fileInput.addEventListener('change', (e) => {
+      if (e.target.files && e.target.files[0]) {
+        handleFileSelect(e.target.files[0]);
+      }
+    });
+
+    removeImageBtn.addEventListener('click', (e) => {
+      e.stopPropagation();
+      state.file = null;
+      fileInput.value = '';
+      imagePreview.src = '#';
+      imagePreview.classList.add('hidden');
+      previewContainer.classList.add('hidden');
+      uploadPrompt.classList.remove('hidden');
+      validateInputs();
+    });
+
+    function handleFileSelect(file) {
+      if (!file.type.startsWith('image/')) {
+        showError('Please upload a valid image file (JPG, PNG, WEBP).');
+        return;
+      }
+      state.file = file;
+      const reader = new FileReader();
+      reader.onload = (e) => {
+        imagePreview.src = e.target.result;
+        imagePreview.classList.remove('hidden');
+        previewContainer.classList.remove('hidden');
+        uploadPrompt.classList.add('hidden');
+        hideError();
+      };
+      reader.readAsDataURL(file);
+      validateInputs();
+    }
+
+    function validateInputs() {
+      const isValid = state.file !== null && state.platforms.length > 0;
+      generateBtn.disabled = !isValid;
+      if (isValid) {
+        generateBtn.classList.remove('cursor-not-allowed', 'bg-slate-800/80', 'text-slate-400');
+        generateBtn.classList.add('bg-[#fca311]', 'hover:bg-[#e5920b]', 'text-slate-950', 'glow-amber', 'cursor-pointer');
+      } else {
+        generateBtn.classList.add('cursor-not-allowed', 'bg-slate-800/80', 'text-slate-400');
+        generateBtn.classList.remove('bg-[#fca311]', 'hover:bg-[#e5920b]', 'text-slate-950', 'glow-amber', 'cursor-pointer');
+      }
+    }
+
+    function showError(msg) {
+      errorMessage.innerText = msg;
+      errorCard.classList.remove('hidden');
+    }
+
+    function hideError() {
+      errorCard.classList.add('hidden');
+    }
+
+    closeErrorBtn.addEventListener('click', hideError);
+
+    // ================= VIEW SWITCHING & AUTH STATE =================
+
+    function showAuthView(mode = 'signup') {
+      authScreen.classList.remove('hidden');
+      appWorkspace.classList.add('hidden');
+      setAuthMode(mode);
+    }
+
+    function showWorkspaceView() {
+      authScreen.classList.add('hidden');
+      appWorkspace.classList.remove('hidden');
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    }
+
+    async function checkAuthSession() {
+      if (!state.token) {
+        setLoggedOutUI();
+        return;
+      }
+      try {
+        const res = await fetch('/api/auth/me', {
+          headers: { 'Authorization': `Bearer ${state.token}` }
+        });
+        if (res.ok) {
+          const data = await res.json();
+          state.user = data.user;
+          setLoggedInUI(data.user, data.stats?.total_captions_generated || 0);
+          showWorkspaceView();
+        } else {
+          logoutUser(false);
+        }
+      } catch (err) {
+        console.warn('Auth check skipped:', err);
+      }
+    }
+
+    function setLoggedInUI(user, captionCount = 0) {
+      unauthControls.classList.add('hidden');
+      authControls.classList.remove('hidden');
+
+      const firstName = user.name.split(' ')[0] || user.name;
+      navUserName.innerText = firstName;
+      userAvatar.innerText = firstName.charAt(0).toUpperCase();
+      dropdownFullName.innerText = user.name;
+      dropdownEmail.innerText = user.email;
+
+      if (captionCount > 0) {
+        historyBadge.innerText = captionCount;
+        historyBadge.classList.remove('hidden');
+      } else {
+        historyBadge.classList.add('hidden');
+      }
+    }
+
+    function setLoggedOutUI() {
+      state.token = '';
+      state.user = null;
+      localStorage.removeItem('caption_auth_token');
+      unauthControls.classList.remove('hidden');
+      authControls.classList.add('hidden');
+      userDropdown.classList.add('hidden');
+      showAuthView('signup');
+    }
+
+    function setAuthMode(mode) {
+      state.authMode = mode;
+      authAlert.classList.add('hidden');
+      if (mode === 'signup') {
+        authMainTitle.innerText = 'Sign up';
+        authMainSubtitle.innerText = 'Sign up with Open account';
+        nameFieldGroup.classList.remove('hidden');
+        authName.required = true;
+        authSubmitBtn.querySelector('span').innerText = 'Continue';
+        authSwitchText.innerHTML = `Already have an account? <button type="button" id="authToggleModeBtn" class="text-amber-400 hover:text-amber-300 font-bold ml-1 hover:underline">Log in</button>`;
+      } else {
+        authMainTitle.innerText = 'Log in';
+        authMainSubtitle.innerText = 'Log in with Open account';
+        nameFieldGroup.classList.add('hidden');
+        authName.required = false;
+        authSubmitBtn.querySelector('span').innerText = 'Sign in';
+        authSwitchText.innerHTML = `Don't have an account? <button type="button" id="authToggleModeBtn" class="text-amber-400 hover:text-amber-300 font-bold ml-1 hover:underline">Sign up</button>`;
+      }
+      // Re-attach switch event listener
+      document.getElementById('authToggleModeBtn').addEventListener('click', () => {
+        setAuthMode(state.authMode === 'signup' ? 'login' : 'signup');
+      });
+    }
+
+    navSignInBtn.addEventListener('click', () => showAuthView('login'));
+    navSignUpBtn.addEventListener('click', () => showAuthView('signup'));
+
+    // Skip / Guest Mode
+    continueGuestBtn.addEventListener('click', () => {
+      showWorkspaceView();
+    });
+
+    // Social Button Demo Handlers
+    socialGoogleBtn.addEventListener('click', () => {
+      showAuthAlert('Google OAuth simulated: Enter email & password below to continue.', true);
+    });
+    socialOutlookBtn.addEventListener('click', () => {
+      showAuthAlert('Outlook Mail simulated: Enter email & password below to continue.', true);
+    });
+
+    // Password visibility togglers
+    document.querySelectorAll('.toggle-pwd').forEach(btn => {
+      btn.addEventListener('click', () => {
+        const input = btn.previousElementSibling;
+        if (input) {
+          input.type = input.type === 'password' ? 'text' : 'password';
+        }
+      });
+    });
+
+    function showAuthAlert(msg, isSuccess = false) {
+      authAlert.innerText = msg;
+      authAlert.className = `p-3 rounded-xl text-xs font-medium border mb-4 ${
+        isSuccess 
+          ? 'bg-emerald-500/10 text-emerald-300 border-emerald-500/30' 
+          : 'bg-red-500/10 text-red-300 border-red-500/30'
+      }`;
+      authAlert.classList.remove('hidden');
+    }
+
+    // Unified Auth Form Submission
+    authForm.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const email = authEmail.value.trim();
+      const password = authPassword.value;
+      const name = authName.value.trim();
+      const isSignUp = state.authMode === 'signup';
+
+      authSubmitBtn.disabled = true;
+      authSubmitBtn.innerHTML = `
+        <div class="w-4 h-4 border-2 border-slate-950 border-t-transparent rounded-full animate-spin"></div>
+        <span>Processing...</span>
+      `;
+
+      const endpoint = isSignUp ? '/api/auth/register' : '/api/auth/login';
+      const payload = isSignUp ? { name, email, password } : { email, password };
+
+      try {
+        const res = await fetch(endpoint, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(payload)
+        });
+        const data = await res.json();
+
+        if (res.ok) {
+          state.token = data.token;
+          state.user = data.user;
+          localStorage.setItem('caption_auth_token', data.token);
+          showAuthAlert(data.message || (isSignUp ? 'Account created successfully!' : 'Login successful!'), true);
+          setTimeout(() => {
+            setLoggedInUI(data.user);
+            showWorkspaceView();
+            checkAuthSession();
+          }, 500);
+        } else {
+          showAuthAlert(data.detail || 'Authentication failed. Please check your credentials.');
+        }
+      } catch (err) {
+        showAuthAlert('Unable to reach auth server. Please try again.');
+      } finally {
+        authSubmitBtn.disabled = false;
+        authSubmitBtn.innerHTML = `<span>${isSignUp ? 'Continue' : 'Sign in'}</span>`;
+      }
+    });
+
+    // User Menu Dropdown Toggle
+    userMenuBtn.addEventListener('click', (e) => {
+      e.stopPropagation();
+      userDropdown.classList.toggle('hidden');
+    });
+
+    document.addEventListener('click', (e) => {
+      if (!userDropdown.contains(e.target) && e.target !== userMenuBtn) {
+        userDropdown.classList.add('hidden');
+      }
+    });
+
+    // Sign Out
+    async function logoutUser(notify = true) {
+      if (state.token && notify) {
+        try {
+          await fetch('/api/auth/logout', {
+            method: 'POST',
+            headers: { 'Authorization': `Bearer ${state.token}` }
+          });
+        } catch (_) {}
+      }
+      setLoggedOutUI();
+    }
+    logoutBtn.addEventListener('click', () => logoutUser(true));
+
+    // ================= USER HISTORY MODAL =================
+
+    async function openHistoryModal() {
+      userDropdown.classList.add('hidden');
+      historyModal.classList.remove('hidden');
+      historyLoading.classList.remove('hidden');
+      historyEmpty.classList.add('hidden');
+      historyList.innerHTML = '';
+
+      if (!state.token) {
+        historyLoading.classList.add('hidden');
+        historyEmpty.classList.remove('hidden');
+        return;
+      }
+
+      try {
+        const res = await fetch('/api/history', {
+          headers: { 'Authorization': `Bearer ${state.token}` }
+        });
+        const data = await res.json();
+        historyLoading.classList.add('hidden');
+
+        if (res.ok && data.history && data.history.length > 0) {
+          renderHistoryItems(data.history);
+        } else {
+          historyEmpty.classList.remove('hidden');
+        }
+      } catch (err) {
+        historyLoading.classList.add('hidden');
+        historyEmpty.classList.remove('hidden');
+      }
+    }
+
+    function renderHistoryItems(items) {
+      historyList.innerHTML = '';
+      items.forEach(item => {
+        const dateStr = new Date(item.created_at).toLocaleDateString(undefined, {
+          month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit'
+        });
+        
+        let captionsHtml = '';
+        Object.keys(item.captions || {}).forEach(k => {
+          const c = item.captions[k];
+          captionsHtml += `
+            <div class="bg-[#121316] p-3 rounded-xl border border-slate-800 text-xs">
+              <div class="flex items-center justify-between mb-1.5">
+                <span class="font-bold text-amber-400 capitalize">${c.label || k}</span>
+                <button onclick="copyCaption(this, \`${escapeJsString(c.caption)}\`)" class="text-[10px] text-slate-400 hover:text-white px-2 py-0.5 rounded-lg bg-[#1f2128] border border-slate-700">Copy</button>
+              </div>
+              <p class="text-slate-300 line-clamp-3 whitespace-pre-wrap">${escapeHtml(c.caption)}</p>
+            </div>
+          `;
+        });
+
+        const card = `
+          <div class="bg-[#18191e] border border-slate-800 rounded-2xl p-4 transition-all">
+            <div class="flex items-start justify-between gap-2 mb-2">
+              <div>
+                <span class="text-[10px] font-bold text-amber-400 uppercase tracking-wider">${item.tone || 'Generated'}</span>
+                <span class="text-[10px] text-slate-500 ml-2">• ${dateStr}</span>
+                <p class="text-xs font-semibold text-white mt-0.5">${escapeHtml(item.description)}</p>
+              </div>
+              <button onclick="deleteHistoryEntry(${item.id}, this)" class="text-slate-500 hover:text-red-400 p-1.5 rounded-lg hover:bg-slate-800 transition-colors" title="Delete record">
+                <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                </svg>
+              </button>
+            </div>
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-2 mt-3">
+              ${captionsHtml}
+            </div>
+          </div>
+        `;
+        historyList.insertAdjacentHTML('beforeend', card);
+      });
+    }
+
+    async function deleteHistoryEntry(id, btn) {
+      if (!confirm('Are you sure you want to delete this caption from your history?')) return;
+      try {
+        const res = await fetch(`/api/history/${id}`, {
+          method: 'DELETE',
+          headers: { 'Authorization': `Bearer ${state.token}` }
+        });
+        if (res.ok) {
+          const card = btn.closest('.bg-\\[\\#18191e\\]') || btn.closest('.rounded-2xl');
+          if (card) card.remove();
+          checkAuthSession();
+        }
+      } catch (err) {
+        console.error('Failed to delete history item:', err);
+      }
+    }
+
+    historyBtn.addEventListener('click', openHistoryModal);
+    dropdownHistoryBtn.addEventListener('click', openHistoryModal);
+    closeHistoryModalBtn.addEventListener('click', () => historyModal.classList.add('hidden'));
+
+    // ================= CAPTION GENERATION =================
+
+    generateBtn.addEventListener('click', async () => {
+      if (!state.file) {
+        showError('Please upload an image first.');
+        return;
+      }
+      if (state.platforms.length === 0) {
+        showError('Please select at least one target platform.');
+        return;
+      }
+
+      hideError();
+      loadingOverlay.classList.remove('hidden');
+
+      const formData = new FormData();
+      formData.append('file', state.file);
+      formData.append('platforms', state.platforms.join(','));
+      formData.append('tone', state.tone);
+      formData.append('context', state.context);
+      if (state.apiKey) formData.append('api_key', state.apiKey);
+      if (state.token) formData.append('user_token', state.token);
+
+      const headers = {};
+      if (state.token) {
+        headers['Authorization'] = `Bearer ${state.token}`;
+      }
+
+      try {
+        const response = await fetch('/api/generate', {
+          method: 'POST',
+          headers: headers,
+          body: formData
+        });
+
+        if (!response.ok) {
+          let errText = 'Caption generation failed.';
+          try {
+            const errData = await response.json();
+            errText = errData.detail || errData.message || errText;
+          } catch (_) {
+            const raw = await response.text();
+            if (raw && raw.length < 200) errText = raw;
+          }
+          throw new Error(errText);
+        }
+
+        const data = await response.json();
+        loadingOverlay.classList.add('hidden');
+        renderResults(data);
+
+        // Update user stats
+        if (state.token) {
+          checkAuthSession();
+        }
+      } catch (err) {
+        loadingOverlay.classList.add('hidden');
+        showError(err.message || 'An error occurred while generating captions.');
+      }
+    });
+
+    function renderResults(data) {
+      imageCaption.innerText = `"${data.description}"`;
+      captionGrid.innerHTML = '';
+
+      if (data.saved_to_history) {
+        savedIndicator.classList.remove('hidden');
+      } else {
+        savedIndicator.classList.add('hidden');
+      }
+
+      Object.keys(data.captions).forEach(platformKey => {
+        const item = data.captions[platformKey];
+        const cardHtml = `
+          <div class="bg-[#18191e] border border-slate-800 rounded-2xl p-5 hover:border-slate-700/60 transition-colors duration-200">
+            <div class="flex items-center justify-between mb-3">
+              <span class="font-bold text-white font-display text-base">${item.label}</span>
+              <button onclick="copyCaption(this, \`${escapeJsString(item.caption)}\`)" class="text-xs flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-slate-700 bg-[#1f2128] hover:bg-slate-800 text-slate-300 hover:text-white transition-all select-none">
+                <svg class="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 5H6a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2v-1M8 5a2 2 0 002 2h2a2 2 0 002-2M8 5a2 2 0 012-2h2a2 2 0 012 2m0 0h2a2 2 0 012 2v3m2 4H10m0 0l3-3m-3 3l3 3" />
+                </svg>
+                <span>Copy</span>
+              </button>
+            </div>
+            <p class="text-sm text-slate-300 whitespace-pre-wrap font-sans leading-relaxed select-text">${escapeHtml(item.caption)}</p>
+            <div class="mt-3 flex justify-between text-[11px] text-slate-500 font-semibold uppercase tracking-wider">
+              <span>Limit: ${item.max_chars} chars</span>
+              <span>Length: ${item.caption.length} chars</span>
+            </div>
+          </div>
+        `;
+        captionGrid.insertAdjacentHTML('beforeend', cardHtml);
+      });
+
+      resultsSection.classList.remove('hidden');
+      resultsSection.scrollIntoView({ behavior: 'smooth' });
+    }
+
+    copyAllBtn.addEventListener('click', () => {
+      const cards = captionGrid.querySelectorAll('p.text-sm');
+      let allText = '';
+      cards.forEach((p, idx) => {
+        const title = p.previousElementSibling.querySelector('span').innerText;
+        allText += `=== ${title} ===\n${p.innerText}\n\n`;
+      });
+      navigator.clipboard.writeText(allText).then(() => {
+        const orig = copyAllBtn.innerHTML;
+        copyAllBtn.innerHTML = `<span>✓ All Captions Copied!</span>`;
+        setTimeout(() => { copyAllBtn.innerHTML = orig; }, 2000);
+      });
+    });
+
+    function copyCaption(button, text) {
+      navigator.clipboard.writeText(text).then(() => {
+        const originalContent = button.innerHTML;
+        button.innerHTML = `
+          <svg class="h-3.5 w-3.5 text-emerald-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M5 13l4 4L19 7" />
+          </svg>
+          <span class="text-emerald-400 font-semibold">Copied!</span>
+        `;
+        button.classList.add('border-emerald-500/40', 'bg-emerald-500/10');
+        setTimeout(() => {
+          button.innerHTML = originalContent;
+          button.classList.remove('border-emerald-500/40', 'bg-emerald-500/10');
+        }, 2000);
+      });
+    }
+
+    function escapeHtml(text) {
+      return text
+        .replace(/&/g, "&amp;")
+        .replace(/</g, "&lt;")
+        .replace(/>/g, "&gt;")
+        .replace(/"/g, "&quot;")
+        .replace(/'/g, "&#039;");
+    }
+
+    function escapeJsString(text) {
+      return text
+        .replace(/\\/g, '\\\\')
+        .replace(/`/g, '\\`')
+        .replace(/\$/g, '\\$');
+    }
+
+    // Initial Startup checks
+    validateInputs();
+    checkAuthSession();
+  </script>
+</body>
+</html>
