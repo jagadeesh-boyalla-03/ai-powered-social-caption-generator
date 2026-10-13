@@ -80,10 +80,24 @@ app.add_middleware(
 def get_db_path() -> str:
     """Returns the configured database path or default data/auth.db."""
     db_path = os.environ.get("DATABASE_PATH")
-    if not db_path:
-        db_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "data", "auth.db")
-    os.makedirs(os.path.dirname(os.path.abspath(db_path)), exist_ok=True)
-    return db_path
+    if db_path:
+        try:
+            os.makedirs(os.path.dirname(os.path.abspath(db_path)), exist_ok=True)
+            return db_path
+        except OSError:
+            pass
+
+    # Check for serverless read-only environments (Vercel, AWS Lambda, etc.)
+    if os.environ.get("VERCEL") or os.environ.get("AWS_LAMBDA_FUNCTION_NAME"):
+        return os.path.join(tempfile.gettempdir(), "auth.db")
+
+    default_dir = os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "data")
+    try:
+        os.makedirs(default_dir, exist_ok=True)
+        return os.path.join(default_dir, "auth.db")
+    except OSError:
+        # Fallback to system temp directory if local workspace is read-only
+        return os.path.join(tempfile.gettempdir(), "auth.db")
 
 def get_db() -> sqlite3.Connection:
     """Helper function to create a new database connection with dictionary-like row access."""
@@ -93,51 +107,57 @@ def get_db() -> sqlite3.Connection:
 
 def init_db():
     """Initializes SQLite database tables for user management, sessions, and history logging."""
-    db_path = get_db_path()
-    logger.info("Initializing database tables at path: %s", db_path)
-    with get_db() as conn:
-        cursor = conn.cursor()
-        
-        # 1. Users Table: Stores registered user credentials and registration date
-        cursor.execute("""
-            CREATE TABLE IF NOT EXISTS users (
-                id INTEGER PRIMARY KEY AUTOINCREMENT,
-                name TEXT NOT NULL,
-                email TEXT UNIQUE NOT NULL COLLATE NOCASE,
-                password_hash TEXT NOT NULL,
-                created_at TEXT NOT NULL
-            )
-        """)
-        
-        # 2. Sessions Table: Stores active bearer authentication tokens with expiration dates
-        cursor.execute("""
-            CREATE TABLE IF NOT EXISTS sessions (
-                token TEXT PRIMARY KEY,
-                user_id INTEGER NOT NULL,
-                created_at TEXT NOT NULL,
-                expires_at TEXT NOT NULL,
-                FOREIGN KEY (user_id) REFERENCES users (id) ON DELETE CASCADE
-            )
-        """)
-        
-        # 3. History Table: Stores generated caption records linked to user accounts
-        cursor.execute("""
-            CREATE TABLE IF NOT EXISTS history (
-                id INTEGER PRIMARY KEY AUTOINCREMENT,
-                user_id INTEGER NOT NULL,
-                description TEXT NOT NULL,
-                media_type TEXT NOT NULL,
-                tone TEXT NOT NULL,
-                captions_json TEXT NOT NULL,
-                created_at TEXT NOT NULL,
-                FOREIGN KEY (user_id) REFERENCES users (id) ON DELETE CASCADE
-            )
-        """)
-        conn.commit()
-    logger.info("Database schema initialized and verified successfully.")
+    try:
+        db_path = get_db_path()
+        logger.info("Initializing database tables at path: %s", db_path)
+        with get_db() as conn:
+            cursor = conn.cursor()
+            
+            # 1. Users Table: Stores registered user credentials and registration date
+            cursor.execute("""
+                CREATE TABLE IF NOT EXISTS users (
+                    id INTEGER PRIMARY KEY AUTOINCREMENT,
+                    name TEXT NOT NULL,
+                    email TEXT UNIQUE NOT NULL COLLATE NOCASE,
+                    password_hash TEXT NOT NULL,
+                    created_at TEXT NOT NULL
+                )
+            """)
+            
+            # 2. Sessions Table: Stores active bearer authentication tokens with expiration dates
+            cursor.execute("""
+                CREATE TABLE IF NOT EXISTS sessions (
+                    token TEXT PRIMARY KEY,
+                    user_id INTEGER NOT NULL,
+                    created_at TEXT NOT NULL,
+                    expires_at TEXT NOT NULL,
+                    FOREIGN KEY (user_id) REFERENCES users (id) ON DELETE CASCADE
+                )
+            """)
+            
+            # 3. History Table: Stores generated caption records linked to user accounts
+            cursor.execute("""
+                CREATE TABLE IF NOT EXISTS history (
+                    id INTEGER PRIMARY KEY AUTOINCREMENT,
+                    user_id INTEGER NOT NULL,
+                    description TEXT NOT NULL,
+                    media_type TEXT NOT NULL,
+                    tone TEXT NOT NULL,
+                    captions_json TEXT NOT NULL,
+                    created_at TEXT NOT NULL,
+                    FOREIGN KEY (user_id) REFERENCES users (id) ON DELETE CASCADE
+                )
+            """)
+            conn.commit()
+        logger.info("Database schema initialized and verified successfully.")
+    except Exception as e:
+        logger.error("Database schema initialization non-fatal error: %s", e)
 
-# Execute table creation on startup
-init_db()
+# Execute table creation on startup with error safeguard
+try:
+    init_db()
+except Exception as e:
+    logger.error("Failed to execute init_db on startup: %s", e)
 
 # --------------------------------------------------------------------------------------------------
 # STEP 3: CRYPTOGRAPHIC PASSWORD HASHING & TOKEN HELPERS
