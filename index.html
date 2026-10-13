@@ -395,12 +395,37 @@
               </div>
             </div>
 
-            <!-- Context Input -->
+            <!-- Context Input with Speech-to-Text Voice Dictation -->
             <div>
-              <label class="block text-xs font-semibold uppercase tracking-wider text-slate-400 mb-2">Optional Context / Campaign Details</label>
+              <div class="flex items-center justify-between mb-2">
+                <label for="context" class="block text-xs font-semibold uppercase tracking-wider text-slate-400">
+                  Optional Context / Campaign Details
+                </label>
+                <!-- Voice Mic Button -->
+                <button type="button" id="voiceMicBtn" class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-medium bg-slate-900/60 hover:bg-slate-800 text-slate-300 hover:text-white border border-slate-700/60 transition-all cursor-pointer select-none group" title="Click to speak your context details">
+                  <svg id="micIconIdle" class="w-3.5 h-3.5 text-amber-400 group-hover:scale-110 transition-transform" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 11a7 7 0 01-7 7m0 0a7 7 0 01-7-7m7 7v4m0 0H8m4 0h4m-4-8a3 3 0 01-3-3V5a3 3 0 116 0v6a3 3 0 01-3 3z" />
+                  </svg>
+                  <span id="micRecordingPulse" class="hidden relative flex h-2 w-2">
+                    <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-rose-400 opacity-75"></span>
+                    <span class="relative inline-flex rounded-full h-2 w-2 bg-rose-500"></span>
+                  </span>
+                  <span id="micBtnText">Voice Input</span>
+                </button>
+              </div>
+
+              <!-- Real-time Voice Recognition Banner -->
+              <div id="voiceStatusBanner" class="hidden mb-2 px-3 py-1.5 rounded-lg text-[11px] font-medium bg-rose-500/10 border border-rose-500/30 text-rose-300 flex items-center justify-between animate-pulse">
+                <div class="flex items-center gap-2">
+                  <span class="w-2 h-2 rounded-full bg-rose-500 animate-ping"></span>
+                  <span id="voiceStatusMsg">🎙️ Listening... Speak your context now</span>
+                </div>
+                <button type="button" id="cancelVoiceBtn" class="text-rose-300 hover:text-white underline text-[10px] cursor-pointer">Stop</button>
+              </div>
+
               <textarea id="context" rows="2" 
                         placeholder="e.g. 'Launching our summer sale 20% off', 'Behind the scenes at tech summit'" 
-                        class="w-full bg-slate-900/60 border border-slate-700/60 rounded-xl px-4 py-3 text-sm focus:outline-none focus:border-amber-400 text-white placeholder-slate-500 resize-none"></textarea>
+                        class="w-full bg-slate-900/60 border border-slate-700/60 rounded-xl px-4 py-3 text-sm focus:outline-none focus:border-amber-400 text-white placeholder-slate-500 resize-none transition-all"></textarea>
             </div>
           </section>
         </div>
@@ -566,6 +591,13 @@
     const clearAllPlatformsBtn = document.getElementById('clearAllPlatformsBtn');
     const toneSelect = document.getElementById('tone');
     const contextInput = document.getElementById('context');
+    const voiceMicBtn = document.getElementById('voiceMicBtn');
+    const micIconIdle = document.getElementById('micIconIdle');
+    const micRecordingPulse = document.getElementById('micRecordingPulse');
+    const micBtnText = document.getElementById('micBtnText');
+    const voiceStatusBanner = document.getElementById('voiceStatusBanner');
+    const voiceStatusMsg = document.getElementById('voiceStatusMsg');
+    const cancelVoiceBtn = document.getElementById('cancelVoiceBtn');
     const generateBtn = document.getElementById('generateBtn');
     const apiKeyInput = document.getElementById('apiKey');
     const toggleApiKeyBtn = document.getElementById('toggleApiKeyBtn');
@@ -676,6 +708,98 @@
     contextInput.addEventListener('input', (e) => {
       state.context = e.target.value;
     });
+
+    // ================= SPEECH RECOGNITION (VOICE INPUT / MIC) =================
+    const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+    let recognition = null;
+    let isRecordingVoice = false;
+    let baseContextText = '';
+
+    if (SpeechRecognition) {
+      recognition = new SpeechRecognition();
+      recognition.continuous = true;
+      recognition.interimResults = true;
+      recognition.lang = 'en-US';
+
+      recognition.onstart = () => {
+        isRecordingVoice = true;
+        baseContextText = contextInput.value ? contextInput.value.trim() + ' ' : '';
+        voiceMicBtn.classList.add('bg-rose-500/20', 'border-rose-500/50', 'text-rose-300');
+        voiceMicBtn.classList.remove('bg-slate-900/60', 'text-slate-300');
+        micIconIdle.classList.add('hidden');
+        micRecordingPulse.classList.remove('hidden');
+        micBtnText.innerText = 'Listening...';
+        voiceStatusBanner.classList.remove('hidden');
+        voiceStatusMsg.innerText = '🎙️ Listening... Speak your context now';
+        contextInput.classList.add('border-rose-500/60', 'ring-1', 'ring-rose-500/40');
+      };
+
+      recognition.onresult = (event) => {
+        let transcript = '';
+        for (let i = event.resultIndex; i < event.results.length; ++i) {
+          transcript += event.results[i][0].transcript;
+        }
+        if (transcript) {
+          contextInput.value = baseContextText + transcript;
+          state.context = contextInput.value;
+        }
+      };
+
+      recognition.onerror = (event) => {
+        console.warn('Speech recognition error:', event.error);
+        if (event.error === 'not-allowed') {
+          showError('Microphone permission was denied. Please allow microphone access in your browser address bar.');
+        } else if (event.error !== 'no-speech') {
+          showError('Voice recognition error: ' + event.error);
+        }
+        stopVoiceRecognition();
+      };
+
+      recognition.onend = () => {
+        stopVoiceRecognition();
+      };
+    }
+
+    function startVoiceRecognition() {
+      if (!SpeechRecognition) {
+        showError('Speech recognition is not supported in this browser. Please try Chrome, Edge, or Safari.');
+        return;
+      }
+      try {
+        recognition.start();
+      } catch (err) {
+        console.warn('Recognition start exception:', err);
+      }
+    }
+
+    function stopVoiceRecognition() {
+      isRecordingVoice = false;
+      if (recognition) {
+        try { recognition.stop(); } catch (_) {}
+      }
+      voiceMicBtn.classList.remove('bg-rose-500/20', 'border-rose-500/50', 'text-rose-300');
+      voiceMicBtn.classList.add('bg-slate-900/60', 'text-slate-300');
+      micIconIdle.classList.remove('hidden');
+      micRecordingPulse.classList.add('hidden');
+      micBtnText.innerText = 'Voice Input';
+      voiceStatusBanner.classList.add('hidden');
+      contextInput.classList.remove('border-rose-500/60', 'ring-1', 'ring-rose-500/40');
+      state.context = contextInput.value;
+    }
+
+    if (voiceMicBtn) {
+      voiceMicBtn.addEventListener('click', () => {
+        if (isRecordingVoice) {
+          stopVoiceRecognition();
+        } else {
+          startVoiceRecognition();
+        }
+      });
+    }
+
+    if (cancelVoiceBtn) {
+      cancelVoiceBtn.addEventListener('click', stopVoiceRecognition);
+    }
 
     // File Upload Handling
     dropzone.addEventListener('click', (e) => {
