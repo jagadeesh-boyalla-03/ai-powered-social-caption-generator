@@ -15,8 +15,10 @@ import faiss
 from PIL import Image
 from transformers import CLIPProcessor, CLIPModel
 
-INDEX_FILE = "image_index.faiss"
-PATHS_FILE = "image_paths.npy"
+BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+DATA_DIR = os.path.join(BASE_DIR, "data")
+INDEX_FILE = os.path.join(DATA_DIR, "image_index.faiss") if os.path.exists(DATA_DIR) else "image_index.faiss"
+PATHS_FILE = os.path.join(DATA_DIR, "image_paths.npy") if os.path.exists(DATA_DIR) else "image_paths.npy"
 
 def load_clip():
     print("Loading CLIP model...")

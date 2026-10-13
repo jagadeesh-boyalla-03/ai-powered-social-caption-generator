@@ -5,3 +5,6 @@ google-genai
 python-dotenv
 pillow
 requests
+httpx
+pytest
+pytest-asyncio

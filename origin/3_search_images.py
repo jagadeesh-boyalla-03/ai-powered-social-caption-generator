@@ -6,13 +6,16 @@ Usage:
     python 3_search_images.py "a dog playing on the beach"
 """
 
+import os
 import sys
 import numpy as np
 import faiss
 from transformers import CLIPProcessor, CLIPModel
 
-INDEX_FILE = "image_index.faiss"
-PATHS_FILE = "image_paths.npy"
+BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+DATA_DIR = os.path.join(BASE_DIR, "data")
+INDEX_FILE = os.path.join(DATA_DIR, "image_index.faiss") if os.path.exists(os.path.join(DATA_DIR, "image_index.faiss")) else "image_index.faiss"
+PATHS_FILE = os.path.join(DATA_DIR, "image_paths.npy") if os.path.exists(os.path.join(DATA_DIR, "image_paths.npy")) else "image_paths.npy"
 TOP_K = 5
 
 def load_clip():
